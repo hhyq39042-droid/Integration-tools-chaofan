@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FBA 售价核查工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#f0ede8;
+  --border:#e2e0da;--border2:#ccc9c0;
+  --text:#1a1a1a;--text2:#5a5a52;--text3:#999890;
+  --green:#1a7a4a;--green-bg:#edf7f1;--green-border:#a8d9bc;
+  --red:#c0392b;--red-bg:#fdf0ee;--red-border:#f0b8b0;
+  --blue:#1a5fa8;--blue-bg:#edf3fb;--blue-border:#a8c4e8;
+  --amber:#8a5c00;--amber-bg:#fdf6e3;--amber-border:#f0d080;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;background:var(--bg3);color:var(--text);min-height:100vh}
+
+.header{background:var(--bg);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.logo{width:32px;height:32px;background:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.header h1{font-size:15px;font-weight:600}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.pill{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:500}
+
+.main{max-width:1100px;margin:0 auto;padding:28px 20px 60px;display:flex;flex-direction:column;gap:20px}
+
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ci-blue{background:var(--blue-bg)}
+.ci-green{background:var(--green-bg)}
+.card-title{font-weight:600;font-size:14px}
+.card-body{padding:20px}
+
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.step{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;background:var(--bg2);transition:all .2s}
+.step.active{border-color:var(--blue-border);background:var(--blue-bg)}
+.step.done{border-color:var(--green-border);background:var(--green-bg)}
+.sn{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.05em;margin-bottom:4px}
+.step.active .sn{color:var(--blue)}
+.step.done .sn{color:var(--green)}
+.sl{font-size:13px;font-weight:500;color:var(--text2)}
+.step.active .sl,.step.done .sl{color:var(--text)}
+.sd{font-size:11.5px;color:var(--text3);margin-top:3px}
+
+.upload-label{display:block;border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg2)}
+.upload-label:hover{border-color:var(--blue-border);background:var(--blue-bg)}
+.upload-label.ready{border-color:var(--green-border);background:var(--green-bg);border-style:solid}
+.upload-label input{display:none}
+.u-icon{font-size:28px;margin-bottom:8px;display:block}
+.u-title{font-size:14px;font-weight:600}
+.u-sub{font-size:12px;color:var(--text3);margin-top:4px}
+.u-file{font-size:12.5px;color:var(--green);font-weight:500;margin-top:6px;display:none}
+.detect{display:none;margin-top:10px;padding:7px 12px;border-radius:var(--radius-sm);font-size:12px;text-align:left}
+.detect.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.detect.warn{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.detect.err{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;cursor:pointer;border:1px solid;font-family:inherit;transition:all .15s}
+.btn-dark{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-dark:hover{background:#333}
+.btn-dark:disabled{opacity:.4;cursor:not-allowed}
+.btn-export{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.btn-export:hover{background:#d5eee2}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
+.ml{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.mv{font-size:26px;font-weight:600}
+.mv.red{color:var(--red)}
+.mv.green{color:var(--green)}
+
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.fbar input,.fbar select{height:32px;padding:0 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.fbar input{flex:1;min-width:150px}
+.fbar input:focus,.fbar select:focus{border-color:var(--blue-border)}
+.fcnt{font-size:12px;color:var(--text3);margin-left:auto;white-space:nowrap}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
+thead th{background:var(--bg2);color:var(--text2);font-weight:500;padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;font-size:12px}
+thead th:hover{color:var(--text)}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg2)}
+.tier-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.tb-Bm{background:var(--amber-bg);color:var(--amber)}
+.tb-Bp{background:var(--blue-bg);color:var(--blue)}
+.tb-A{background:var(--green-bg);color:var(--green)}
+.tb-Ap{background:var(--red-bg);color:var(--red)}
+.diff-red{font-weight:600;color:var(--red)}
+.mono{font-family:"SF Mono",Consolas,monospace;font-size:11.5px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trunc{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty-td{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+
+.admin-toggle{font-size:12px;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding-top:10px}
+.admin-toggle:hover{color:var(--text2)}
+.admin-body{border-top:1px solid var(--border);margin-top:12px;padding-top:16px;display:none}
+.admin-body.open{display:block}
+.adm-zone{border:1px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;font-size:13px;color:var(--text2)}
+.adm-zone:hover{background:var(--bg2)}
+.adm-zone input{display:none}
+#adm-msg{font-size:12px;color:var(--text3);margin-top:8px;min-height:18px}
+
+@media(max-width:700px){
+  .steps{grid-template-columns:1fr 1fr}
+  .metrics{grid-template-columns:1fr 1fr}
+  .main{padding:16px 12px 40px}
+  .header{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">FBA</div>
+  <h1>售价核查工具</h1>
+  <div class="header-right">
+    <span class="pill" id="policy-pill">政策加载中…</span>
+    <span style="font-size:12px;color:var(--text3)">v4.0</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- 步骤说明 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-blue">⚙</div>
+      <span class="card-title">核查流程</span>
+    </div>
+    <div class="card-body">
+      <div class="steps">
+        <div class="step" id="s1">
+          <div class="sn">步骤 01</div>
+          <div class="sl">解析二级分类</div>
+          <div class="sd">自动识别「一级\二级\三级」合并列或独立列</div>
+        </div>
+        <div class="step" id="s2">
+          <div class="sn">步骤 02</div>
+          <div class="sl">匹配销售等级</div>
+          <div class="sd">14日销量 → B- / B+ / A / A+（销量&lt;30不纳入）</div>
+        </div>
+        <div class="step" id="s3">
+          <div class="sn">步骤 03</div>
+          <div class="sl">查询最低售价</div>
+          <div class="sd">三键联合：二级分类 × 国家 × 等级</div>
+        </div>
+        <div class="step" id="s4">
+          <div class="sn">步骤 04</div>
+          <div class="sl">比对 + 标记</div>
+          <div class="sd">差距 &lt; −0.5 元标记违规，可导出 Excel</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 上传区 -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-blue">📁</div>
+      <span class="card-title">上传数据原表</span>
+    </div>
+    <div class="card-body">
+      <label class="upload-label" id="upload-zone" for="inp-data">
+        <input type="file" id="inp-data" accept=".xlsx,.xls">
+        <span class="u-icon">📂</span>
+        <span class="u-title">点击选择 Listing 导出文件（.xlsx）</span>
+        <span class="u-sub">售价政策已内置，无需另外上传</span>
+        <div class="u-file" id="u-file"></div>
+        <div class="detect" id="detect-badge"></div>
+      </label>
+
+      <div class="btn-row">
+        <button class="btn btn-dark" id="run-btn" disabled onclick="runCheck()">▶ 开始核查</button>
+        <span style="font-size:12px;color:var(--text3)" id="run-msg"></span>
+      </div>
+
+      <div class="admin-toggle" onclick="toggleAdmin()">
+        <span id="adm-arrow">▸</span> 管理员：更新售价政策表
+      </div>
+      <div class="admin-body" id="adm-body">
+        <p style="font-size:12.5px;color:var(--text2);margin-bottom:10px">上传包含「等级对应」和「售价政策」两个子表的 .xlsx，更新后本浏览器永久生效。</p>
+        <label class="adm-zone" for="inp-admin">
+          <input type="file" id="inp-admin" accept=".xlsx,.xls" onchange="updatePolicy(this)">
+          点击上传新政策文件
+        </label>
+        <div id="adm-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="card" id="result-card" style="display:none">
+    <div class="card-head">
+      <div class="card-icon ci-green">✓</div>
+      <span class="card-title">核查结果</span>
+      <button class="btn btn-export" style="margin-left:auto" onclick="exportExcel()">⬇ 导出 Excel</button>
+    </div>
+    <div class="card-body">
+      <div class="metrics">
+        <div class="metric"><div class="ml">总数据行</div><div class="mv" id="m-total">—</div></div>
+        <div class="metric"><div class="ml">等级匹配行</div><div class="mv green" id="m-matched">—</div></div>
+        <div class="metric"><div class="ml">售价违规数</div><div class="mv red" id="m-flagged">—</div></div>
+        <div class="metric"><div class="ml">最大差距</div><div class="mv red" id="m-maxdiff">—</div></div>
+      </div>
+
+      <div class="fbar">
+        <input type="text" id="f-search" placeholder="搜索店铺 / MSKU…" oninput="renderTable()">
+        <select id="f-country" onchange="renderTable()"><option value="">全部国家</option></select>
+        <select id="f-tier" onchange="renderTable()"><option value="">全部等级</option></select>
+        <select id="f-cat" onchange="renderTable()"><option value="">全部分类</option></select>
+        <span class="fcnt" id="fcnt"></span>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th onclick="sortBy('shop')">店铺 <span id="sa-shop"></span></th>
+            <th onclick="sortBy('msku')">MSKU <span id="sa-msku"></span></th>
+            <th onclick="sortBy('category')">二级分类 <span id="sa-category"></span></th>
+            <th onclick="sortBy('country')">国家 <span id="sa-country"></span></th>
+            <th onclick="sortBy('sales14')" style="text-align:right">14日销量 <span id="sa-sales14"></span></th>
+            <th onclick="sortBy('tier')">等级 <span id="sa-tier"></span></th>
+            <th onclick="sortBy('price')" style="text-align:right">售价 <span id="sa-price"></span></th>
+            <th onclick="sortBy('minPrice')" style="text-align:right">最低售价 <span id="sa-minPrice"></span></th>
+            <th onclick="sortBy('diff')" style="text-align:right">差距 <span id="sa-diff"></span></th>
+          </tr></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── 内置政策数据 ──────────────────────────────────────────
+const DEFAULT_TIER=[{tier:"B-",min:30,max:89},{tier:"B+",min:90,max:149},{tier:"A",min:150,max:299},{tier:"A+",min:300,max:999999}];
+const DEFAULT_POLICY=[{"品类":"YSK","国家":"美国","等级":"A+","最低价":11.99},{"品类":"YSK","国家":"美国","等级":"A","最低价":9.99},{"品类":"YSK","国家":"美国","等级":"B+","最低价":9.99},{"品类":"YSK","国家":"美国","等级":"B-","最低价":8.99},{"品类":"YSK","国家":"加拿大","等级":"A+","最低价":14.99},{"品类":"YSK","国家":"加拿大","等级":"A","最低价":13.99},{"品类":"YSK","国家":"加拿大","等级":"B+","最低价":12.99},{"品类":"YSK","国家":"加拿大","等级":"B-","最低价":11.99},{"品类":"SQ","国家":"美国","等级":"A+","最低价":11.99},{"品类":"SQ","国家":"美国","等级":"A","最低价":11.99},{"品类":"SQ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"SQ","国家":"美国","等级":"B-","最低价":8.99},{"品类":"SQ","国家":"加拿大","等级":"A+","最低价":16.99},{"品类":"SQ","国家":"加拿大","等级":"A","最低价":15.99},{"品类":"SQ","国家":"加拿大","等级":"B+","最低价":14.99},{"品类":"SQ","国家":"加拿大","等级":"B-","最低价":13.99},{"品类":"TZ","国家":"美国","等级":"A+","最低价":14.99},{"品类":"TZ","国家":"美国","等级":"A","最低价":13.99},{"品类":"TZ","国家":"美国","等级":"B+","最低价":12.99},{"品类":"TZ","国家":"美国","等级":"B-","最低价":11.99},{"品类":"TZ","国家":"加拿大","等级":"A+","最低价":22.99},{"品类":"TZ","国家":"加拿大","等级":"A","最低价":20.99},{"品类":"TZ","国家":"加拿大","等级":"B+","最低价":19.99},{"品类":"TZ","国家":"加拿大","等级":"B-","最低价":18.99},{"品类":"ZZHK","国家":"美国","等级":"A+","最低价":7.99},{"品类":"ZZHK","国家":"美国","等级":"A","最低价":6.99},{"品类":"ZZHK","国家":"美国","等级":"B+","最低价":5.99},{"品类":"ZZHK","国家":"美国","等级":"B-","最低价":5.99},{"品类":"ZZHK","国家":"加拿大","等级":"A+","最低价":12.99},{"品类":"ZZHK","国家":"加拿大","等级":"A","最低价":12.99},{"品类":"ZZHK","国家":"加拿大","等级":"B+","最低价":11.99},{"品类":"ZZHK","国家":"加拿大","等级":"B-","最低价":10.99},{"品类":"YKLBJ","国家":"美国","等级":"A+","最低价":17.99},{"品类":"YKLBJ","国家":"美国","等级":"A","最低价":16.99},{"品类":"YKLBJ","国家":"美国","等级":"B+","最低价":15.99},{"品类":"YKLBJ","国家":"美国","等级":"B-","最低价":13.99},{"品类":"YKLBJ","国家":"加拿大","等级":"A+","最低价":27.99},{"品类":"YKLBJ","国家":"加拿大","等级":"A","最低价":26.99},{"品类":"YKLBJ","国家":"加拿大","等级":"B+","最低价":25.99},{"品类":"YKLBJ","国家":"加拿大","等级":"B-","最低价":23.99},{"品类":"MJ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"MJ","国家":"美国","等级":"A","最低价":11.99},{"品类":"MJ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"MJ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"MJ","国家":"加拿大","等级":"A+","最低价":17.99},{"品类":"MJ","国家":"加拿大","等级":"A","最低价":16.99},{"品类":"MJ","国家":"加拿大","等级":"B+","最低价":15.99},{"品类":"MJ","国家":"加拿大","等级":"B-","最低价":14.99},{"品类":"MT","国家":"美国","等级":"A+","最低价":28.99},{"品类":"MT","国家":"美国","等级":"A","最低价":27.99},{"品类":"MT","国家":"美国","等级":"B+","最低价":26.99},{"品类":"MT","国家":"美国","等级":"B-","最低价":24.99},{"品类":"MZTZ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"MZTZ","国家":"美国","等级":"A","最低价":11.99},{"品类":"MZTZ","国家":"美国","等级":"B+","最低价":10.99},{"品类":"MZTZ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"MZTZ","国家":"加拿大","等级":"A+","最低价":20.99},{"品类":"MZTZ","国家":"加拿大","等级":"A","最低价":18.99},{"品类":"MZTZ","国家":"加拿大","等级":"B+","最低价":16.99},{"品类":"MZTZ","国家":"加拿大","等级":"B-","最低价":15.99},{"品类":"PGP","国家":"美国","等级":"A+","最低价":10.99},{"品类":"PGP","国家":"美国","等级":"A","最低价":9.99},{"品类":"PGP","国家":"美国","等级":"B+","最低价":8.99},{"品类":"PGP","国家":"美国","等级":"B-","最低价":7.99},{"品类":"PGP","国家":"加拿大","等级":"A+","最低价":13.99},{"品类":"PGP","国家":"加拿大","等级":"A","最低价":12.99},{"品类":"PGP","国家":"加拿大","等级":"B+","最低价":11.99},{"品类":"PGP","国家":"加拿大","等级":"B-","最低价":10.99},{"品类":"SSP","国家":"美国","等级":"A+","最低价":12.99},{"品类":"SSP","国家":"美国","等级":"A","最低价":11.99},{"品类":"SSP","国家":"美国","等级":"B+","最低价":10.99},{"品类":"SSP","国家":"美国","等级":"B-","最低价":9.99},{"品类":"SSP","国家":"加拿大","等级":"A+","最低价":19.99},{"品类":"SSP","国家":"加拿大","等级":"A","最低价":18.99},{"品类":"SSP","国家":"加拿大","等级":"B+","最低价":17.99},{"品类":"SSP","国家":"加拿大","等级":"B-","最低价":16.99},{"品类":"XDK","国家":"美国","等级":"A+","最低价":13.99},{"品类":"XDK","国家":"美国","等级":"A","最低价":12.99},{"品类":"XDK","国家":"美国","等级":"B+","最低价":11.99},{"品类":"XDK","国家":"美国","等级":"B-","最低价":10.99},{"品类":"XDK","国家":"加拿大","等级":"A+","最低价":18.99},{"品类":"XDK","国家":"加拿大","等级":"A","最低价":17.99},{"品类":"XDK","国家":"加拿大","等级":"B+","最低价":16.99},{"品类":"XDK","国家":"加拿大","等级":"B-","最低价":15.99},{"品类":"XGYKLTZ","国家":"美国","等级":"A+","最低价":18.99},{"品类":"XGYKLTZ","国家":"美国","等级":"A","最低价":16.99},{"品类":"XGYKLTZ","国家":"美国","等级":"B+","最低价":15.99},{"品类":"XGYKLTZ","国家":"美国","等级":"B-","最低价":14.99},{"品类":"XGYKLTZ","国家":"加拿大","等级":"A+","最低价":31.99},{"品类":"XGYKLTZ","国家":"加拿大","等级":"A","最低价":29.99},{"品类":"XGYKLTZ","国家":"加拿大","等级":"B+","最低价":28.99},{"品类":"XGYKLTZ","国家":"加拿大","等级":"B-","最低价":27.99},{"品类":"YB","国家":"美国","等级":"A+","最低价":11.99},{"品类":"YB","国家":"美国","等级":"A","最低价":9.99},{"品类":"YB","国家":"美国","等级":"B+","最低价":9.99},{"品类":"YB","国家":"美国","等级":"B-","最低价":8.99},{"品类":"YB","国家":"加拿大","等级":"A+","最低价":14.99},{"品类":"YB","国家":"加拿大","等级":"A","最低价":13.99},{"品类":"YB","国家":"加拿大","等级":"B+","最低价":12.99},{"品类":"YB","国家":"加拿大","等级":"B-","最低价":11.99},{"品类":"BXGTZ","国家":"美国","等级":"A+","最低价":11.99},{"品类":"BXGTZ","国家":"美国","等级":"A","最低价":10.99},{"品类":"BXGTZ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"BXGTZ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"BXGTZ","国家":"加拿大","等级":"A+","最低价":22.99},{"品类":"BXGTZ","国家":"加拿大","等级":"A","最低价":20.99},{"品类":"BXGTZ","国家":"加拿大","等级":"B+","最低价":19.99},{"品类":"BXGTZ","国家":"加拿大","等级":"B-","最低价":18.99},{"品类":"BQ","国家":"美国","等级":"A+","最低价":22.99},{"品类":"BQ","国家":"美国","等级":"A","最低价":21.99},{"品类":"BQ","国家":"美国","等级":"B+","最低价":20.99},{"品类":"BQ","国家":"美国","等级":"B-","最低价":19.99},{"品类":"BQ","国家":"加拿大","等级":"A+","最低价":29.99},{"品类":"BQ","国家":"加拿大","等级":"A","最低价":27.99},{"品类":"BQ","国家":"加拿大","等级":"B+","最低价":25.99},{"品类":"BQ","国家":"加拿大","等级":"B-","最低价":23.99},{"品类":"GEFQ","国家":"美国","等级":"A+","最低价":13.99},{"品类":"GEFQ","国家":"美国","等级":"A","最低价":12.99},{"品类":"GEFQ","国家":"美国","等级":"B+","最低价":11.99},{"品类":"GEFQ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"GEFQ","国家":"加拿大","等级":"A+","最低价":23.99},{"品类":"GEFQ","国家":"加拿大","等级":"A","最低价":21.99},{"品类":"GEFQ","国家":"加拿大","等级":"B+","最低价":19.99},{"品类":"GEFQ","国家":"加拿大","等级":"B-","最低价":17.99},{"品类":"JTP","国家":"美国","等级":"A+","最低价":11.99},{"品类":"JTP","国家":"美国","等级":"A","最低价":10.99},{"品类":"JTP","国家":"美国","等级":"B+","最低价":9.99},{"品类":"JTP","国家":"美国","等级":"B-","最低价":8.99},{"品类":"JTP","国家":"加拿大","等级":"A+","最低价":14.99},{"品类":"JTP","国家":"加拿大","等级":"A","最低价":13.99},{"品类":"JTP","国家":"加拿大","等级":"B+","最低价":12.99},{"品类":"JTP","国家":"加拿大","等级":"B-","最低价":11.99},{"品类":"KP","国家":"美国","等级":"A+","最低价":10.99},{"品类":"KP","国家":"美国","等级":"A","最低价":9.99},{"品类":"KP","国家":"美国","等级":"B+","最低价":8.99},{"品类":"KP","国家":"美国","等级":"B-","最低价":7.99},{"品类":"KP","国家":"加拿大","等级":"A+","最低价":13.99},{"品类":"KP","国家":"加拿大","等级":"A","最低价":12.99},{"品类":"KP","国家":"加拿大","等级":"B+","最低价":11.99},{"品类":"KP","国家":"加拿大","等级":"B-","最低价":10.99},{"品类":"KPQ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"KPQ","国家":"美国","等级":"A","最低价":11.99},{"品类":"KPQ","国家":"美国","等级":"B+","最低价":10.99},{"品类":"KPQ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"KPQ","国家":"加拿大","等级":"A+","最低价":16.99},{"品类":"KPQ","国家":"加拿大","等级":"A","最低价":15.99},{"品类":"KPQ","国家":"加拿大","等级":"B+","最低价":14.99},{"品类":"KPQ","国家":"加拿大","等级":"B-","最低价":13.99},{"品类":"JZ","国家":"美国","等级":"A+","最低价":14.99},{"品类":"JZ","国家":"美国","等级":"A","最低价":13.99},{"品类":"JZ","国家":"美国","等级":"B+","最低价":11.99},{"品类":"JZ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"JZ","国家":"加拿大","等级":"A+","最低价":22.99},{"品类":"JZ","国家":"加拿大","等级":"A","最低价":20.99},{"品类":"JZ","国家":"加拿大","等级":"B+","最低价":18.99},{"品类":"JZ","国家":"加拿大","等级":"B-","最低价":18.99},{"品类":"PGSQ","国家":"美国","等级":"A+","最低价":11.99},{"品类":"PGSQ","国家":"美国","等级":"A","最低价":10.99},{"品类":"PGSQ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"PGSQ","国家":"美国","等级":"B-","最低价":7.99},{"品类":"PGSQ","国家":"加拿大","等级":"A+","最低价":15.99},{"品类":"PGSQ","国家":"加拿大","等级":"A","最低价":14.99},{"品类":"PGSQ","国家":"加拿大","等级":"B+","最低价":13.99},{"品类":"PGSQ","国家":"加拿大","等级":"B-","最低价":12.99},{"品类":"LPZZBQ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"LPZZBQ","国家":"美国","等级":"A","最低价":11.99},{"品类":"LPZZBQ","国家":"美国","等级":"B+","最低价":10.99},{"品类":"LPZZBQ","国家":"美国","等级":"B-","最低价":8.99},{"品类":"LPZZBQ","国家":"加拿大","等级":"A+","最低价":19.9},{"品类":"LPZZBQ","国家":"加拿大","等级":"A","最低价":18.9},{"品类":"LPZZBQ","国家":"加拿大","等级":"B+","最低价":17.9},{"品类":"LPZZBQ","国家":"加拿大","等级":"B-","最低价":16.9},{"品类":"MZSSP","国家":"美国","等级":"A+","最低价":13.99},{"品类":"MZSSP","国家":"美国","等级":"A","最低价":12.99},{"品类":"MZSSP","国家":"美国","等级":"B+","最低价":11.99},{"品类":"MZSSP","国家":"美国","等级":"B-","最低价":10.99},{"品类":"MZSSP","国家":"加拿大","等级":"A+","最低价":18.99},{"品类":"MZSSP","国家":"加拿大","等级":"A","最低价":17.99},{"品类":"MZSSP","国家":"加拿大","等级":"B+","最低价":16.99},{"品类":"MZSSP","国家":"加拿大","等级":"B-","最低价":15.99},{"品类":"ZZSQ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"ZZSQ","国家":"美国","等级":"A","最低价":11.99},{"品类":"ZZSQ","国家":"美国","等级":"B+","最低价":10.99},{"品类":"ZZSQ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"FBB","国家":"美国","等级":"A+","最低价":12.99},{"品类":"FBB","国家":"美国","等级":"A","最低价":11.99},{"品类":"FBB","国家":"美国","等级":"B+","最低价":10.99},{"品类":"FBB","国家":"美国","等级":"B-","最低价":9.99},{"品类":"HYQ","国家":"美国","等级":"A+","最低价":10.99},{"品类":"HYQ","国家":"美国","等级":"A","最低价":9.99},{"品类":"HYQ","国家":"美国","等级":"B+","最低价":8.99},{"品类":"HYQ","国家":"美国","等级":"B-","最低价":7.99},{"品类":"TJB","国家":"美国","等级":"A+","最低价":14.99},{"品类":"TJB","国家":"美国","等级":"A","最低价":14.99},{"品类":"TJB","国家":"美国","等级":"B+","最低价":11.99},{"品类":"TJB","国家":"美国","等级":"B-","最低价":9.99},{"品类":"ZNZ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"ZNZ","国家":"美国","等级":"A","最低价":11.99},{"品类":"ZNZ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"ZNZ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"ZZWO","国家":"美国","等级":"A+","最低价":11.99},{"品类":"ZZWO","国家":"美国","等级":"A","最低价":10.99},{"品类":"ZZWO","国家":"美国","等级":"B+","最低价":9.99},{"品类":"ZZWO","国家":"美国","等级":"B-","最低价":8.99},{"品类":"YKLTZ","国家":"美国","等级":"A+","最低价":13.99},{"品类":"YKLTZ","国家":"美国","等级":"A","最低价":12.99},{"品类":"YKLTZ","国家":"美国","等级":"B+","最低价":11.99},{"品类":"YKLTZ","国家":"美国","等级":"B-","最低价":11.99},{"品类":"PGBT","国家":"美国","等级":"A+","最低价":12.99},{"品类":"PGBT","国家":"美国","等级":"A","最低价":11.99},{"品类":"PGBT","国家":"美国","等级":"B+","最低价":9.99},{"品类":"PGBT","国家":"美国","等级":"B-","最低价":8.99},{"品类":"WZ","国家":"美国","等级":"A+","最低价":13.99},{"品类":"WZ","国家":"美国","等级":"A","最低价":12.99},{"品类":"WZ","国家":"美国","等级":"B+","最低价":11.99},{"品类":"WZ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"XWJ","国家":"美国","等级":"A+","最低价":13.99},{"品类":"XWJ","国家":"美国","等级":"A","最低价":12.99},{"品类":"XWJ","国家":"美国","等级":"B+","最低价":11.99},{"品类":"XWJ","国家":"美国","等级":"B-","最低价":9.99},{"品类":"YKLSQ","国家":"美国","等级":"A+","最低价":12.99},{"品类":"YKLSQ","国家":"美国","等级":"A","最低价":11.99},{"品类":"YKLSQ","国家":"美国","等级":"B+","最低价":9.99},{"品类":"YKLSQ","国家":"美国","等级":"B-","最低价":8.99}];
+
+// ── 状态 ──────────────────────────────────────────────────
+let tierData=[],policyMap={},dataRows=[],allFlagged=[],sortCol='diff',sortAsc=true;
+
+// ── 政策初始化（localStorage 持久化，单机 HTML 用） ────────
+function buildPolicyMap(rows){policyMap={};rows.forEach(r=>{if(typeof r['最低价']==='number')policyMap[r['品类']+'|'+r['国家']+'|'+r['等级']]=r['最低价'];});}
+function buildTierData(rows){tierData=rows.map(r=>({tier:r['等级']||r.tier,min:parseFloat(r['14日销量-最小销量']??r.min),max:parseFloat(r['14日销量-最大销量']??r.max)}));}
+function initPolicy(){
+  try{const s=localStorage.getItem('fba-policy-v1');if(s){const d=JSON.parse(s);buildTierData(d.tierData);buildPolicyMap(d.policyData);const dt=new Date(d.updatedAt);document.getElementById('policy-pill').textContent=`政策已内置 · ${Object.keys(policyMap).length} 条规则 · ${dt.toLocaleDateString('zh-CN')} 更新`;return;}}catch(e){}
+  buildTierData(DEFAULT_TIER);buildPolicyMap(DEFAULT_POLICY);
+  document.getElementById('policy-pill').textContent=`政策已内置 · ${Object.keys(policyMap).length} 条规则`;
+}
+initPolicy();
+
+// ── 二级分类自动识别 ───────────────────────────────────────
+function extractCategory(row,cols){
+  // 优先：独立 二级分类 列
+  if(cols.includes('二级分类')){const v=String(row['二级分类']||'').trim();if(v)return{val:v,mode:'独立列「二级分类」直接读取'};}
+  // 合并 分类 列，识别分隔符
+  for(const c of ['分类','产品分类']){
+    if(!cols.includes(c))continue;
+    const raw=String(row[c]||'').trim();if(!raw)continue;
+    let sep=null;
+    if(raw.includes('\\'))sep='\\';
+    else if(raw.includes('/'))sep='/';
+    if(sep){const parts=raw.split(sep).map(s=>s.trim()).filter(Boolean);if(parts.length>=2&&parts[1])return{val:parts[1],mode:`合并列「${c}」按「${sep==='\\\\' ? '\\\\\\\\' : '/'}」分隔，取第二段`};}
+    if(raw)return{val:raw,mode:`合并列「${c}」仅一段`};
+  }
+  return{val:'',mode:null};
+}
+
+// ── 文件上传 ───────────────────────────────────────────────
+document.getElementById('inp-data').onchange=function(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const wb=XLSX.read(ev.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!raw.length){document.getElementById('run-msg').textContent='⚠ 文件为空';return;}
+    const cols=Object.keys(raw[0]);
+    dataRows=raw.map(r=>{const cat=extractCategory(r,cols);return{shop:r['店铺']||'',msku:r['MSKU']||r['msku']||'',category:cat.val,country:r['国家']||'',sales14:parseFloat(r['14日销量'])||0,price:parseFloat(r['售价(总价)']||r['售价']||0)};});
+    // 检测提示
+    let probeMode=null;for(const r of raw){const c=extractCategory(r,cols);if(c.mode){probeMode=c.mode;break;}}
+    const badge=document.getElementById('detect-badge');badge.style.display='block';
+    if(probeMode){badge.className='detect ok';badge.textContent='✓ 二级分类识别：'+probeMode;}
+    else{badge.className='detect err';badge.textContent='✗ 未能识别分类列，请检查文件格式';}
+    const uf=document.getElementById('u-file');uf.textContent='📄 '+f.name+'　共 '+dataRows.length+' 行';uf.style.display='block';
+    document.getElementById('upload-zone').classList.add('ready');
+    document.getElementById('run-btn').disabled=false;
+    document.getElementById('run-msg').textContent='文件就绪，点击开始核查';
+    document.getElementById('result-card').style.display='none';
+  };reader.readAsArrayBuffer(f);
+};
+
+// ── 核查 ──────────────────────────────────────────────────
+function getTier(s){for(const t of tierData){if(s>=t.min&&s<=t.max)return t.tier;}return null;}
+function setStep(n,st){document.getElementById('s'+n).className='step'+(st?' '+st:'');}
+function runCheck(){
+  [1,2,3,4].forEach(n=>setStep(n,''));document.getElementById('run-msg').textContent='核查中…';
+  setTimeout(()=>{setStep(1,'done');setStep(2,'active');},80);
+  setTimeout(()=>{
+    const flagged=[];let matched=0;
+    dataRows.forEach(r=>{const tier=getTier(r.sales14);if(!tier)return;matched++;const mp=policyMap[r.category+'|'+r.country+'|'+tier];if(mp===undefined)return;const diff=parseFloat((r.price-mp).toFixed(2));if(diff<-0.5)flagged.push({...r,tier,minPrice:mp,diff});});
+    setStep(2,'done');setStep(3,'done');setStep(4,'done');allFlagged=flagged;
+    document.getElementById('m-total').textContent=dataRows.length;
+    document.getElementById('m-matched').textContent=matched;
+    document.getElementById('m-flagged').textContent=flagged.length;
+    const mx=flagged.length?Math.min(...flagged.map(r=>r.diff)):0;
+    document.getElementById('m-maxdiff').textContent=mx.toFixed(2);
+    populateFilters(flagged);
+    document.getElementById('result-card').style.display='block';
+    renderTable();
+    document.getElementById('run-msg').textContent='核查完成 · 检出 '+flagged.length+' 条违规';
+    document.getElementById('result-card').scrollIntoView({behavior:'smooth',block:'start'});
+  },400);
+}
+
+// ── 筛选 & 表格渲染 ────────────────────────────────────────
+function populateFilters(rows){
+  const sel=(id,vals)=>{const s=document.getElementById(id),cv=s.value;s.innerHTML='<option value="">全部</option>'+[...new Set(vals)].sort().map(v=>`<option>${v}</option>`).join('');s.value=cv;};
+  sel('f-country',rows.map(r=>r.country));sel('f-tier',rows.map(r=>r.tier));sel('f-cat',rows.map(r=>r.category));
+}
+function sortBy(col){if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=col==='diff';}renderTable();}
+function renderTable(){
+  const q=(document.getElementById('f-search').value||'').toLowerCase();
+  const cn=document.getElementById('f-country').value,ti=document.getElementById('f-tier').value,ca=document.getElementById('f-cat').value;
+  let rows=allFlagged.filter(r=>{if(cn&&r.country!==cn)return false;if(ti&&r.tier!==ti)return false;if(ca&&r.category!==ca)return false;if(q&&!r.shop.toLowerCase().includes(q)&&!r.msku.toLowerCase().includes(q))return false;return true;});
+  rows.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}return sortAsc?(va>vb?1:-1):(va<vb?1:-1);});
+  ['shop','msku','category','country','sales14','tier','price','minPrice','diff'].forEach(c=>{const el=document.getElementById('sa-'+c);if(el)el.textContent=sortCol===c?(sortAsc?'↑':'↓'):'';});
+  document.getElementById('fcnt').textContent='显示 '+rows.length+' / '+allFlagged.length+' 条';
+  const tc={'B-':'tb-Bm','B+':'tb-Bp','A':'tb-A','A+':'tb-Ap'};
+  const tbody=document.getElementById('tbl-body');
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="9" class="empty-td">无符合条件的记录</td></tr>';return;}
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td class="trunc" title="${r.shop}">${r.shop}</td>
+    <td class="mono" title="${r.msku}">${r.msku}</td>
+    <td>${r.category}</td><td>${r.country}</td>
+    <td style="text-align:right">${r.sales14}</td>
+    <td><span class="tier-badge ${tc[r.tier]||''}">${r.tier}</span></td>
+    <td style="text-align:right">${r.price.toFixed(2)}</td>
+    <td style="text-align:right">${r.minPrice.toFixed(2)}</td>
+    <td style="text-align:right" class="diff-red">${r.diff.toFixed(2)}</td>
+  </tr>`).join('');
+}
+
+// ── 导出 Excel ────────────────────────────────────────────
+function exportExcel(){
+  if(!allFlagged.length){alert('暂无违规数据可导出');return;}
+  const now=new Date();
+  const ds=now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2);
+  const wb=XLSX.utils.book_new();
+
+  // Sheet1: 违规明细
+  const headers=['店铺','MSKU','二级分类','国家','14日销量','等级','当前售价','最低售价','差距（元）','核查结论'];
+  const rowData=allFlagged.map(r=>[r.shop,r.msku,r.category,r.country,r.sales14,r.tier,r.price,r.minPrice,r.diff,`售价低于最低限价 ${Math.abs(r.diff).toFixed(2)} 元，需调整`]);
+  const ws=XLSX.utils.aoa_to_sheet([headers,...rowData]);
+  ws['!cols']=[{wch:22},{wch:30},{wch:12},{wch:8},{wch:10},{wch:7},{wch:10},{wch:10},{wch:10},{wch:32}];
+  XLSX.utils.book_append_sheet(wb,ws,'售价违规明细');
+
+  // Sheet2: 核查概览
+  const mx=Math.min(...allFlagged.map(r=>r.diff));
+  const summary=[
+    ['FBA 售价核查报告'],[''],
+    ['核查时间',now.toLocaleString('zh-CN')],
+    ['数据总行数',dataRows.length],
+    ['售价违规产品数',allFlagged.length],
+    ['最大价格差距（元）',mx.toFixed(2)],[''],
+    ['判定规则','当前售价 < 最低售价 − 0.5 元，则判定为违规'],
+    ['注','销量 < 30 的产品不纳入核查范围']
+  ];
+  const ws2=XLSX.utils.aoa_to_sheet(summary);
+  ws2['!cols']=[{wch:22},{wch:38}];
+  XLSX.utils.book_append_sheet(wb,ws2,'核查概览');
+
+  XLSX.writeFile(wb,`FBA售价核查_违规明细_${ds}.xlsx`);
+}
+
+// ── 管理员面板 ────────────────────────────────────────────
+function toggleAdmin(){const b=document.getElementById('adm-body'),a=document.getElementById('adm-arrow'),o=b.classList.toggle('open');a.textContent=o?'▾':'▸';}
+function updatePolicy(inp){
+  const f=inp.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      if(!wb.SheetNames.includes('等级对应')||!wb.SheetNames.includes('售价政策')){document.getElementById('adm-msg').textContent='⚠ 未找到「等级对应」或「售价政策」子表';return;}
+      const nt=XLSX.utils.sheet_to_json(wb.Sheets['等级对应'],{defval:0});
+      const np=XLSX.utils.sheet_to_json(wb.Sheets['售价政策'],{defval:''});
+      localStorage.setItem('fba-policy-v1',JSON.stringify({tierData:nt,policyData:np,updatedAt:new Date().toISOString()}));
+      buildTierData(nt);buildPolicyMap(np);
+      const cnt=Object.keys(policyMap).length;
+      document.getElementById('policy-pill').textContent=`政策已更新 · ${cnt} 条规则`;
+      document.getElementById('adm-msg').textContent=`✓ 更新成功，共 ${cnt} 条规则，已保存到本地`;
+    }catch(e){document.getElementById('adm-msg').textContent='✗ 更新失败：'+e.message;}
+  };reader.readAsArrayBuffer(f);
+}
+</script>
+</body>
+</html>

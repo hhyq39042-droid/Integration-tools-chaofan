@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>采购补货 & FBA排单 审核系统</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;min-height:100vh;color:#0f172a}
+.hdr{background:white;border-bottom:1px solid #e2e8f0;padding:13px 22px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.logo{width:34px;height:34px;background:#1e293b;border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px}
+.body{padding:18px 22px;max-width:1480px;margin:0 auto}
+.card{background:white;border-radius:12px;border:1px solid #e2e8f0;padding:18px 20px;margin-bottom:14px}
+.sec-label{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-label .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-red{background:#ef4444}.dot-purple{background:#8b5cf6}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.upzone{border:1.5px dashed #cbd5e1;border-radius:10px;padding:14px;cursor:pointer;display:block;background:#f8fafc;transition:all .2s;position:relative}
+.upzone:hover{border-color:#94a3b8;background:#f1f5f9}
+.upzone.has-file{border:2px solid #22c55e;background:#f0fdf4}
+.upzone.cached{border:2px solid #8b5cf6;background:#f5f3ff}
+.upzone.needs-file{border:1.5px dashed #f87171;background:#fef2f2}
+.z-icon{font-size:20px;margin-bottom:6px}
+.z-title{font-weight:600;font-size:12px;color:#0f172a}
+.z-desc{font-size:10px;color:#64748b;margin-top:3px;line-height:1.5}
+.z-status{margin-top:6px;font-size:10px;font-weight:600}
+.z-ok{color:#16a34a}.z-cache{color:#7c3aed}.z-need{color:#dc2626}
+.z-meta{font-size:9px;color:#94a3b8;margin-top:2px}
+.z-hint{font-size:9px;color:#a78bfa;margin-top:2px}
+.mode-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.mode-p{background:#dbeafe;color:#1e40af}.mode-o{background:#fef3c7;color:#92400e}
+.btn-run{width:100%;padding:11px;border-radius:8px;border:none;background:#1e293b;color:white;cursor:pointer;font-weight:500;font-size:13px}
+.btn-run:disabled{background:#94a3b8;cursor:not-allowed}
+.btn-sm{padding:6px 14px;border-radius:7px;border:1px solid #e2e8f0;background:white;cursor:pointer;font-size:12px;color:#475569}
+.btn-export{padding:7px 16px;border-radius:7px;border:none;background:#16a34a;color:white;cursor:pointer;font-size:12px;font-weight:500}
+.stats{display:grid;gap:8px;margin-bottom:12px}
+.stat{border-radius:10px;border:1px solid #e2e8f0;padding:10px 14px}
+.stat-n{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1}
+.stat-l{font-size:10px;color:#64748b;margin-top:3px}
+.filterbar{display:flex;gap:5px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.cfg-tag{font-size:11px;color:#64748b;padding:4px 9px;background:white;border-radius:6px;border:1px solid #e2e8f0}
+.fbtn{padding:4px 11px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:500}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead tr{background:#f8fafc}
+th{padding:7px 9px;font-weight:500;font-size:10px;color:#64748b;border-bottom:1px solid #e2e8f0;white-space:nowrap;text-align:left}
+td{padding:6px 9px;border-bottom:1px solid #f1f5f9;font-size:11px;vertical-align:middle}
+tr:hover td{background:rgba(0,0,0,.012);cursor:pointer}
+.badge{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap;border-width:1px;border-style:solid}
+.tag-g{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.tag-y{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.tag-r{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+.tag-b{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.tag-o{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.detail-pre{font-size:10px;font-family:monospace;line-height:1.8;white-space:pre-wrap;color:#475569;margin-bottom:7px}
+.detail-conc{font-size:11px;font-weight:600;border-top:1px solid;padding-top:7px}
+.err{background:#fef2f2;color:#b91c1c;padding:8px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;border:1px solid #fecaca}
+.prog{height:3px;background:#e2e8f0;border-radius:2px;margin:8px 0;overflow:hidden}
+.prog-bar{height:100%;background:#1e293b;transition:width .3s;border-radius:2px}
+.info-row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.info-chip{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:10px;color:#64748b}
+
+.logic-panel{background:white;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:14px;overflow:hidden}
+.logic-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:#f8fafc;cursor:pointer;user-select:none;border-bottom:1px solid transparent}
+.logic-hdr.open{border-bottom-color:#e2e8f0}
+.logic-body{padding:18px 20px;display:none}
+.logic-body.open{display:block}
+.logic-section{margin-bottom:18px}
+.logic-section:last-child{margin-bottom:0}
+.logic-sec-title{font-weight:600;font-size:12px;color:#1e293b;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;gap:6px}
+.logic-text{font-size:12px;color:#374151;line-height:1.9;white-space:pre-wrap}
+.logic-text-edit{width:100%;min-height:80px;font-size:12px;line-height:1.8;padding:8px 10px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1e3a5f;resize:vertical;font-family:inherit;box-sizing:border-box}
+.param-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.param-chip{display:inline-flex;align-items:center;gap:5px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:11px;color:#475569}
+.param-chip b{color:#0f172a}
+.param-edit-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+.param-edit-item{display:flex;flex-direction:column;gap:3px}
+.param-edit-item label{font-size:10px;color:#64748b;font-weight:500}
+.param-edit-item input{width:80px;padding:4px 8px;border:1px solid #bfdbfe;border-radius:5px;font-size:12px;background:#eff6ff;color:#1e3a5f}
+.pw-row{display:flex;gap:7px;align-items:center;margin-top:6px}
+.pw-row input{padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:160px}
+.btn-logic{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:500}
+.btn-logic-primary{background:#1e293b;color:white}
+.btn-logic-green{background:#16a34a;color:white}
+.btn-logic-red{background:#dc2626;color:white}
+.btn-logic-ghost{background:white;color:#475569;border:1px solid #e2e8f0}
+.admin-bar{display:flex;align-items:center;gap:8px;padding:8px 18px;background:#fefce8;border-top:1px solid #fde68a;font-size:11px;color:#92400e}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:11px">
+    <div class="logo">审</div>
+    <div>
+      <div style="font-weight:600;font-size:14px">采购补货 & FBA排单 审核系统</div>
+      <div style="font-size:11px;color:#64748b">自动匹配原始数据 · 三方法预估 · 保留格式带颜色导出</div>
+    </div>
+  </div>
+  <div id="hdr-btns" style="display:none;gap:8px">
+    <button class="btn-sm" onclick="doReset()">↩ 重新上传</button>
+    <button class="btn-export" id="export-btn" onclick="doExport()">⬇ 导出 Excel</button>
+  </div>
+</div>
+
+<div class="body">
+  <div id="upload-panel" class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-weight:600;font-size:13px">上传数据文件</div>
+      <div id="mode-indicator" style="display:none"></div>
+    </div>
+
+    <!-- ── Zone 1: 每次必传 ── -->
+    <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div class="sec-label" style="margin-bottom:10px">
+        <span class="dot dot-red"></span>每次审核必传
+        <span style="font-weight:400;color:#ef4444;font-size:10px;letter-spacing:0;margin-left:4px">每次都需要重新上传</span>
+      </div>
+      <div class="grid2">
+        <div class="upzone" id="lbl-main" onclick="triggerFileInput('inp-main')">
+          <input type="file" id="inp-main" accept=".xlsx,.xls" onchange="onMainFile(this)" style="display:none">
+          <div class="z-icon">📋</div>
+          <div class="z-title">① 主表（审核表）</div>
+          <div class="z-desc">采购单明细 或 排单明细<br>系统自动识别类型，无需手动选择</div>
+          <div id="fn-main" style="display:none"><div class="z-status z-ok" id="main-badge"></div><div class="z-meta" id="main-fname"></div></div>
+        </div>
+        <div class="upzone needs-file" id="lbl-s7" onclick="triggerFileInput('inp-s7')">
+          <input type="file" id="inp-s7" accept=".xlsx,.xls" onchange="onDailyFile('s7',this)" style="display:none">
+          <div class="z-icon">📅</div>
+          <div class="z-title">② 7天销量统计</div>
+          <div class="z-desc">日期 + SKU + 店铺 + 销量<br>用于计算7天日均、M月已售量</div>
+          <div id="fn-s7" style="display:none"><div class="z-status z-ok" id="s7-badge"></div><div class="z-meta" id="s7-fname"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2: 同事定期更新（按店铺，浏览器缓存）── -->
+    <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+      <div class="sec-label" style="margin-bottom:10px">
+        <span class="dot dot-purple" style="background:#3b82f6"></span>数据源（按店铺，首次上传后自动记住）
+        <span style="font-weight:400;color:#3b82f6;font-size:10px;letter-spacing:0;margin-left:4px">数据有更新时重传即覆盖</span>
+      </div>
+      <div class="grid2">
+        <div class="upzone" id="lbl-ad" onclick="triggerFileInput('inp-ad')">
+          <input type="file" id="inp-ad" accept=".xlsx,.xls" onchange="onCacheFile('ad',this)" style="display:none">
+          <div class="z-icon">📊</div>
+          <div class="z-title">③ 广告 / 产品表现数据</div>
+          <div class="z-desc">含毛利率、本地可用、FBA库存等<br>SKU + 店铺 + 订单毛利率列</div>
+          <div id="fn-ad" style="display:none">
+            <div class="z-status" id="ad-badge"></div>
+            <div class="z-meta" id="ad-fname"></div>
+            <div class="z-hint" id="ad-date"></div>
+            <div class="z-hint" style="color:#93c5fd;font-size:9px">点击可上传新版本覆盖</div>
+          </div>
+        </div>
+        <div class="upzone" id="lbl-monthly" onclick="triggerFileInput('inp-monthly')">
+          <input type="file" id="inp-monthly" accept=".xlsx,.xls" onchange="onCacheFile('monthly',this)" style="display:none">
+          <div class="z-icon">📈</div>
+          <div class="z-title">④ 月度销量统计</div>
+          <div class="z-desc">SKU + 店铺 + 月度销量列<br>格式：2025-01, 2025-02…</div>
+          <div id="fn-monthly" style="display:none">
+            <div class="z-status" id="monthly-badge"></div>
+            <div class="z-meta" id="monthly-fname"></div>
+            <div class="z-hint" id="monthly-date"></div>
+            <div class="z-hint" style="color:#93c5fd;font-size:9px">点击可上传新版本覆盖</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3: 管理员维护（折叠）── -->
+    <div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div onclick="toggleAdmin()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:#f8fafc;user-select:none">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="dot dot-purple"></span>
+          <span style="font-weight:600;font-size:11px;color:#475569;letter-spacing:.5px;text-transform:uppercase">管理员维护</span>
+          <span style="font-weight:400;color:#94a3b8;font-size:10px;letter-spacing:0">全团队共用，无需同事操作</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div id="admin-status-bar" style="display:flex;gap:4px"></div>
+          <span id="admin-toggle-icon" style="font-size:11px;color:#94a3b8;transition:transform .2s">▼</span>
+        </div>
+      </div>
+      <div id="admin-zone" style="display:none;padding:13px 16px;border-top:1px solid #e2e8f0;background:white">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:10px">
+          <div class="upzone" id="lbl-cat" onclick="triggerFileInput('inp-cat')">
+            <input type="file" id="inp-cat" accept=".xlsx,.xls" onchange="onCacheFile('cat',this)" style="display:none">
+            <div class="z-icon">🏷️</div>
+            <div class="z-title">⑤ 产品品类表</div>
+            <div class="z-desc">产品代码 ↔ 品类名称<br>（最全品类 sheet）</div>
+            <div id="fn-cat" style="display:none">
+              <div class="z-status" id="cat-badge"></div>
+              <div class="z-meta" id="cat-fname"></div>
+              <div class="z-hint" id="cat-date"></div>
+              <div class="z-hint" style="color:#a78bfa;font-size:9px">点击上传新版本</div>
+            </div>
+          </div>
+          <div class="upzone" id="lbl-trend" onclick="triggerFileInput('inp-trend')">
+            <input type="file" id="inp-trend" accept=".xlsx,.xls" onchange="onCacheFile('trend',this)" style="display:none">
+            <div class="z-icon">📉</div>
+            <div class="z-title">⑥ 销量趋势表</div>
+            <div class="z-desc">月份 + 二级分类 + 求和项:销量<br>3-6月品类环比系数</div>
+            <div id="fn-trend" style="display:none">
+              <div class="z-status" id="trend-badge"></div>
+              <div class="z-meta" id="trend-fname"></div>
+              <div class="z-hint" id="trend-date"></div>
+              <div class="z-hint" style="color:#a78bfa;font-size:9px">点击上传新版本</div>
+            </div>
+          </div>
+          <div class="upzone" id="lbl-restock" onclick="triggerFileInput('inp-restock')">
+            <input type="file" id="inp-restock" accept=".xlsx,.xls" onchange="onRestockFile(this)" style="display:none">
+            <div class="z-icon">📦</div>
+            <div class="z-title">⑦ 补货汇总表</div>
+            <div class="z-desc">历史补货记录初始化<br>排单时自动查最近补货记录</div>
+            <div id="fn-restock" style="display:none">
+              <div class="z-status" id="restock-badge"></div>
+              <div class="z-meta" id="restock-fname"></div>
+              <div class="z-hint" id="restock-date"></div>
+              <div class="z-hint" style="color:#a78bfa;font-size:9px">上传可合并历史记录</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:8px 11px;background:#f5f3ff;border-radius:7px;font-size:10px;color:#6d28d9;line-height:1.8;border:1px solid #ede9fe">
+          <b>补货记录：</b>首次上传历史汇总表 → 每次<b>采购审核</b>后自动追加 → <b>排单审核</b>时自动查最近补货填入三列 → 超2个月自动清除 &nbsp;
+          <span style="color:#7c3aed">当前记录：<b id="restock-count">加载中…</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="err-msg" class="err" style="display:none"></div>
+    <div class="prog"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
+    <button class="btn-run" id="run-btn" onclick="doRun()" disabled>🚀 开始审核</button>
+    <div class="info-row">
+      <div class="info-chip">🛒 补货：需补 = 预估汇总 − 已售 − FBA库存 − 本地可用</div>
+      <div class="info-chip">📦 排单：需排 = 预估汇总 − 已售 − FBA库存（不减本地）</div>
+      <div class="info-chip">🟢通过 🟡补量 🔴谨慎/暂缓 🟠关注毛利 🔵参考/新品</div>
+    </div>
+  </div>
+
+
+  <!-- ── LOGIC PANEL ── -->
+  <div class="logic-panel" id="logic-panel">
+    <div class="logic-hdr" id="logic-hdr" onclick="toggleLogicPanel()">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="font-size:16px">📐</span>
+        <div>
+          <div style="font-weight:600;font-size:13px;color:#0f172a">预估与审核逻辑说明</div>
+          <div style="font-size:10px;color:#64748b">点击展开 · 同事可查阅 · 管理员可编辑</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="ai-mode-btn" onclick="toggleAiMode()" style="font-size:10px;padding:3px 10px;border-radius:10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;cursor:pointer">⚡ 标准模式</button>
+        <span id="logic-lock-badge" style="font-size:10px;padding:3px 9px;border-radius:10px;background:#f1f5f9;color:#64748b">🔒 管理员编辑</span>
+        <span id="logic-toggle-icon" style="font-size:11px;color:#94a3b8">▼</span>
+      </div>
+    </div>
+    <div id="admin-bar" class="admin-bar" style="display:none">
+      ✏️ 当前处于<b>管理员编辑模式</b>&nbsp;·&nbsp;修改后点击"保存并应用"生效&nbsp;&nbsp;
+      <button class="btn-logic btn-logic-green" onclick="saveLogic()">💾 保存并应用</button>
+      <button class="btn-logic btn-logic-ghost" onclick="exitAdminMode()">退出编辑</button>
+      <button class="btn-logic btn-logic-ghost" onclick="showChangePw()" style="margin-left:auto">修改密码</button>
+    </div>
+    <div class="logic-body" id="logic-body">
+      <!-- Password / change-pw area (inline, no modal) -->
+      <div id="pw-area" style="display:none;padding:10px 0 14px;border-bottom:1px solid #e2e8f0;margin-bottom:14px">
+        <div id="pw-login-row" style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#475569">🔒 管理员密码：</span>
+          <div style="position:relative;display:inline-flex;align-items:center">
+            <input type="password" id="pw-input" placeholder="输入密码" onkeydown="if(event.key==='Enter')verifyPw()" style="padding:5px 32px 5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:150px">
+            <button type="button" onclick="togglePwVis('pw-input',this)" style="position:absolute;right:7px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:14px;padding:0;line-height:1" title="显示/隐藏密码">👁</button>
+          </div>
+          <button class="btn-logic btn-logic-primary" onclick="verifyPw()">确认</button>
+          <button class="btn-logic btn-logic-ghost" onclick="closePwArea()">取消</button>
+          <span id="pw-err" style="font-size:11px;color:#b91c1c;display:none">密码错误</span>
+        </div>
+        <div id="pw-change-row" style="display:none">
+          <div style="font-size:12px;color:#475569;margin-bottom:8px">修改管理员密码：</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="position:relative;display:inline-flex;align-items:center">
+              <input type="password" id="pw-old" placeholder="当前密码" style="padding:5px 30px 5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:130px">
+              <button type="button" onclick="togglePwVis('pw-old',this)" style="position:absolute;right:6px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px;padding:0">👁</button>
+            </div>
+            <div style="position:relative;display:inline-flex;align-items:center">
+              <input type="password" id="pw-new1" placeholder="新密码" style="padding:5px 30px 5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:130px">
+              <button type="button" onclick="togglePwVis('pw-new1',this)" style="position:absolute;right:6px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px;padding:0">👁</button>
+            </div>
+            <div style="position:relative;display:inline-flex;align-items:center">
+              <input type="password" id="pw-new2" placeholder="确认新密码" style="padding:5px 30px 5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;width:130px">
+              <button type="button" onclick="togglePwVis('pw-new2',this)" style="position:absolute;right:6px;border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px;padding:0">👁</button>
+            </div>
+            <button class="btn-logic btn-logic-green" onclick="doChangePw()">确认修改</button>
+            <button class="btn-logic btn-logic-ghost" onclick="cancelChangePw()">取消</button>
+            <span id="pw-change-msg" style="font-size:11px;display:none"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logic sections rendered here -->
+      <div id="logic-sections"></div>
+    </div>
+  </div>
+
+  <div id="results-panel" style="display:none">
+    <div class="stats" id="stats-grid"></div>
+    <div class="filterbar" id="filterbar"></div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap"><table><thead id="tbl-head"></thead><tbody id="tbl-body"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════════════
+//  LOGIC PARAMS & TEXT (editable by admin, drives computation)
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_PW='Audit2026' // 初始管理员密码（首次使用后建议修改）
+
+let _params={
+  oldSalesThreshold:50,    // 老品判断：月销>X的月份数达标
+  oldMonthCount:6,         // 老品判断：需达标月份数
+  minSalesBase:10,         // 方法A最低基数（去年同期月销<X则放弃）
+  maxCoeff:5.0,            // 同比系数上限（倍）
+  reasonableMultiplier:2,  // 合理性校验：预估>月度参考值×X倍则不合理
+  diffThreshold:15,        // 方法选择：A/B差距<X%选A（≥X%按方向选）
+  conservativeThreshold:30,// 差距>X%时取保守值
+  restockDays:31,          // 近期补货判断（≤X天为近期有记录）
+  gapRatio:0.20,           // 补量/通过阈值（计划与需求差距>X%且>单位数）
+  gapUnits:20,             // 补量/通过阈值（差距单位数下限）
+}
+
+const DEFAULT_LOGIC_SECTIONS=[
+  {id:'stage',title:'① SKU阶段判断',icon:'🏷',
+   text:`· 老品：2025年各月销量中，月销量 > {oldSalesThreshold} 个的月份达到 {oldMonthCount} 个及以上
+· 新品（近期有销量）：2025年1-9月均无销售记录，但近期出现销量
+· 常青产品：2025年全年有销量月份 ≥ 3 个
+· 近期无动销：近2个月历史销量 + 近7天销量 + M月已售 全部为0
+· 全字段无数据：所有数据字段均为"无数据"，直接通过不预估`,
+   params:['oldSalesThreshold','oldMonthCount']},
+  {id:'forecast',title:'② 三方法预估计算',icon:'📊',
+   text:`【方法A - 同比预估】
+  M月预估 = (去年M月销量 ÷ 去年(M-1)月销量) × 今年(M-1)月销量
+  系数上限：{maxCoeff} 倍；去年(M-1)月销量 < {minSalesBase} 时基数过小，放弃A
+
+【方法B - 品类趋势预估】
+  M月预估 = 品类4月/3月环比系数 × 今年(M-1)月销量
+  (M+1)月预估 = 品类5月/4月环比系数 × M月预估
+  品类无趋势数据时使用全市场聚合系数
+
+【方法C - 7天日均预估】
+  日均 = 近7天总销量 ÷ 7
+  M月预估 = 日均 × 剩余天数 + M月已售
+  (M+1)月预估 = 日均 × 30`,
+   params:['maxCoeff','minSalesBase']},
+  {id:'validate',title:'③ 有效性与合理性校验',icon:'✅',
+   text:`【有效性校验】M月已售 > 0 时：
+  若某方法的M月预估 < M月已售 → 该预估明显偏低，放弃该方法
+
+【合理性校验】使用方法C的M月预估作为月度参考值：
+  若A或B的预估 > 月度参考值 × {reasonableMultiplier} 倍 → 视为不合理，放弃该方法
+  两种方法均被放弃时自动降级到C`,
+   params:['reasonableMultiplier']},
+  {id:'select',title:'④ 方法选择规则',icon:'🎯',
+   text:`A与B差距 < {diffThreshold}% → 优先选A（同比，稳定性更高）
+B > A 且差距 ≥ {diffThreshold}% → 选B（趋势更强，反映旺季加速）
+A > B 且差距 ≥ {diffThreshold}% → 选A
+A > B 且差距 > {conservativeThreshold}% → A/B/C 三者取最小保守值
+仅一种方法可用时 → 直接使用该方法
+三种方法均不可用 → 标注"无法预估"`,
+   params:['diffThreshold','conservativeThreshold']},
+  {id:'calc',title:'⑤ 需补 / 需排量公式',icon:'🧮',
+   text:`【采购补货】
+  预估汇总 = M月预估 + (M+1)月预估
+  需补量 = 预估汇总 - M月已售 - FBA可用库存 - 本地可用
+  （本地可用 = 待生产入库的库存，需扣除）
+
+【FBA排单】
+  需排单量 = 预估汇总 - M月已售 - FBA可用库存
+  ⚠️ 不扣减本地可用！本地库存正是排单发货的来源
+  若计划发货量 > 本地可用，标注数量异常`,
+   params:[]},
+  {id:'conclusion',title:'⑥ 审核结论判断标准',icon:'📋',
+   text:`【通用规则】
+  负毛利（补货）→ 建议谨慎（红色）
+  近期无动销（无补货记录）→ 建议暂缓（红色）
+  无法预估 → 红色
+
+【补量 vs 通过阈值】
+  计划与需求差距 > {gapRatio_pct}% 且 > {gapUnits} 个 → 建议补量（黄色）/通过（略多）（绿色）
+  差距在阈值内 → 审核通过（绿色）
+  需求 ≤ 0 → 库存已足（绿色）
+  新品 → 蓝色标注
+
+【排单专有规则】
+  补货记录 ≤ {restockDays} 天内 → 视为"近期有补货记录"
+  负毛利 + 有近期补货记录 → 关注毛利（橙色，可执行但需跟进）
+  负毛利 + 无近期补货记录 → 建议谨慎（红色，先修复定价）
+  FBA库存已充足（需排单量≤0） → 排单参考（蓝色）`,
+   params:['gapRatio','gapUnits','restockDays']},
+]
+
+let _logicSections=JSON.parse(JSON.stringify(DEFAULT_LOGIC_SECTIONS))
+let _adminMode=false
+let _logicOpen=false
+
+// ── Helpers to resolve {param} placeholders ──
+function resolveText(text){
+  return text.replace(/\{(\w+)\}/g,(m,k)=>{
+    if(k==='gapRatio_pct')return Math.round(_params.gapRatio*100)
+    return _params[k]!==undefined?_params[k]:m
+  })
+}
+
+// ── IDB keys ──
+async function loadLogicFromIDB(){
+  try{
+    const p=await idbGet('logic_params');if(p)_params=Object.assign({},_params,p)
+    const s=await idbGet('logic_sections');if(s)_logicSections=s
+  }catch(e){console.warn('Logic load:',e)}
+}
+async function saveLogicToIDB(){
+  try{
+    await idbPut('logic_params',{..._params})
+    await idbPut('logic_sections',_logicSections)
+  }catch(e){console.error('逻辑保存失败:',e);throw e}
+}
+
+// ── Password ──
+async function hashPw(pw){
+  const data=new TextEncoder().encode(pw)
+  const buf=await crypto.subtle.digest('SHA-256',data)
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')
+}
+async function getStoredHash(){
+  try{const h=await idbGet('admin_pw_hash');return h||(await hashPw(DEFAULT_PW))}catch(e){return await hashPw(DEFAULT_PW)}
+}
+async function verifyPw(){
+  const pw=document.getElementById('pw-input').value
+  const hash=await hashPw(pw)
+  const stored=await getStoredHash()
+  if(hash===stored){enterAdminMode()}
+  else{const e=document.getElementById('pw-err');e.style.display='inline';setTimeout(()=>e.style.display='none',2000)}
+}
+function enterAdminMode(){
+  _adminMode=true
+  document.getElementById('pw-area').style.display='none'
+  document.getElementById('admin-bar').style.display='flex'
+  document.getElementById('logic-lock-badge').textContent='✏️ 编辑中'
+  document.getElementById('logic-lock-badge').style.background='#fef3c7'
+  document.getElementById('logic-lock-badge').style.color='#92400e'
+  renderLogicSections()
+}
+function exitAdminMode(){
+  _adminMode=false
+  document.getElementById('admin-bar').style.display='none'
+  document.getElementById('logic-lock-badge').textContent='🔒 管理员编辑'
+  document.getElementById('logic-lock-badge').style.background='#f1f5f9'
+  document.getElementById('logic-lock-badge').style.color='#64748b'
+  renderLogicSections()
+}
+function showChangePw(){
+  document.getElementById('pw-login-row').style.display='none'
+  document.getElementById('pw-change-row').style.display='block'
+  document.getElementById('pw-area').style.display='block'
+}
+function cancelChangePw(){
+  document.getElementById('pw-change-row').style.display='none'
+  document.getElementById('pw-login-row').style.display='flex'
+  document.getElementById('pw-area').style.display='none'
+}
+async function doChangePw(){
+  const oldPw=document.getElementById('pw-old').value
+  const n1=document.getElementById('pw-new1').value
+  const n2=document.getElementById('pw-new2').value
+  const msg=document.getElementById('pw-change-msg');msg.style.display='inline'
+  if(n1!==n2){msg.textContent='两次新密码不一致';msg.style.color='#b91c1c';return}
+  if(n1.length<6){msg.textContent='新密码至少6位';msg.style.color='#b91c1c';return}
+  const oldHash=await hashPw(oldPw),stored=await getStoredHash()
+  if(oldHash!==stored){msg.textContent='当前密码错误';msg.style.color='#b91c1c';return}
+  try{await idbPut('admin_pw_hash',await hashPw(n1))}catch(e){msg.textContent='保存失败，请重试';msg.style.color='#b91c1c';return}
+  msg.textContent='✓ 密码已修改';msg.style.color='#16a34a'
+  setTimeout(cancelChangePw,1500)
+}
+function togglePwVis(inputId,btn){
+  const inp=document.getElementById(inputId)
+  const show=inp.type==='password'
+  inp.type=show?'text':'password'
+  btn.style.opacity=show?'1':'0.4'
+  btn.title=show?'隐藏密码':'显示密码'
+}
+function closePwArea(){document.getElementById('pw-area').style.display='none'}
+function showPwArea(){
+  document.getElementById('pw-login-row').style.display='flex'
+  document.getElementById('pw-change-row').style.display='none'
+  document.getElementById('pw-area').style.display='block'
+  document.getElementById('pw-input').value=''
+  document.getElementById('pw-err').style.display='none'
+  setTimeout(()=>document.getElementById('pw-input').focus(),50)
+}
+
+// ── Logic panel toggle ──
+function toggleLogicPanel(){
+  _logicOpen=!_logicOpen
+  document.getElementById('logic-body').className='logic-body'+(_logicOpen?' open':'')
+  document.getElementById('logic-hdr').className='logic-hdr'+(_logicOpen?' open':'')
+  document.getElementById('logic-toggle-icon').style.transform=_logicOpen?'rotate(180deg)':''
+  if(_logicOpen&&!_adminMode&&document.getElementById('logic-sections').innerHTML==='')renderLogicSections()
+}
+
+// ── Param label map ──
+const PARAM_LABELS={
+  oldSalesThreshold:'老品月销阈值',oldMonthCount:'老品月数',
+  minSalesBase:'方法A最低基数',maxCoeff:'系数上限',
+  reasonableMultiplier:'合理性倍数',diffThreshold:'A/B差距阈值(%)',
+  conservativeThreshold:'保守值阈值(%)',restockDays:'近期补货天数',
+  gapRatio:'补量差距比例',gapUnits:'补量差距单位数',
+}
+
+// ── Render logic sections ──
+function renderLogicSections(){
+  const container=document.getElementById('logic-sections');container.innerHTML=''
+  if(!_logicOpen){
+    if(!_adminMode&&!document.getElementById('pw-area').style.display==='block')
+      document.getElementById('pw-area').style.display='none'
+    return
+  }
+  if(!_adminMode){
+    // Add "管理员编辑" button at top
+    const bar=document.createElement('div')
+    bar.style.cssText='display:flex;justify-content:flex-end;margin-bottom:12px'
+    bar.innerHTML=`<button class="btn-logic btn-logic-primary" onclick="showPwArea()">🔒 管理员编辑</button>`
+    container.appendChild(bar)
+  }
+  _logicSections.forEach((sec,idx)=>{
+    const div=document.createElement('div');div.className='logic-section'
+    let html=`<div class="logic-sec-title"><span>${sec.icon}</span>${sec.title}</div>`
+    if(_adminMode){
+      // Editable text area
+      const escaped=sec.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      html+=`<textarea class="logic-text-edit" data-idx="${idx}" data-field="text" onchange="onLogicChange(this)">${escaped}</textarea>`
+      // Editable params
+      if(sec.params.length>0){
+        html+=`<div class="param-edit-row">`
+        sec.params.forEach(pk=>{
+          html+=`<div class="param-edit-item"><label>${PARAM_LABELS[pk]||pk}</label><input type="number" step="any" value="${_params[pk]}" data-pk="${pk}" onchange="onParamChange(this)"></div>`
+        })
+        html+=`</div>`
+      }
+    }else{
+      // Read-only display
+      html+=`<div class="logic-text">${escHtml(resolveText(sec.text))}</div>`
+      if(sec.params.length>0){
+        html+=`<div class="param-row">`
+        sec.params.forEach(pk=>{
+          html+=`<div class="param-chip">${PARAM_LABELS[pk]||pk}：<b>${_params[pk]}</b></div>`
+        })
+        html+=`</div>`
+      }
+    }
+    div.innerHTML=html;container.appendChild(div)
+    // Add separator except last
+    if(idx<_logicSections.length-1){const hr=document.createElement('hr');hr.style.cssText='border:none;border-top:1px solid #f1f5f9;margin:14px 0';container.appendChild(hr)}
+  })
+}
+
+function onLogicChange(el){
+  const idx=+el.dataset.idx,field=el.dataset.field
+  _logicSections[idx][field]=el.value
+}
+function onParamChange(el){
+  const pk=el.dataset.pk
+  _params[pk]=parseFloat(el.value)||_params[pk]
+}
+
+async function saveLogic(){
+  const btn=event.target  // 必须在 await 之前捕获，异步后 event 失效
+  const orig=btn.textContent
+  btn.disabled=true;btn.textContent='⏳ 保存中…'
+  await saveLogicToIDB()
+  btn.textContent='✅ 已保存并应用！'
+  btn.style.background='#0d9488'
+  btn.style.color='white'
+  renderLogicSections()
+  setTimeout(()=>{
+    btn.textContent=orig
+    btn.style.background=''
+    btn.style.color=''
+    btn.disabled=false
+  },2000)
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 1: HELPERS
+// ═══════════════════════════════════════════════════════════
+const safeNum=(v,d=0)=>{if(v==null||(typeof v==='number'&&isNaN(v)))return d;if(typeof v==='string'&&['无数据','无记录',''].includes(v.trim()))return d;const n=parseFloat(String(v));return isNaN(n)?d:n}
+const parsePct=v=>{const s=String(v??'').trim().replace('%','');const n=parseFloat(s);return isNaN(n)?0:n}
+const safeStr=v=>(v==null||(typeof v==='number'&&isNaN(v)))?'':String(v).trim()
+const isNoVal=v=>v==null||(typeof v==='number'&&isNaN(v))||(typeof v==='string'&&['无数据','无记录','0',''].includes(v.trim()))||parseFloat(String(v))===0
+const escHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+const fmtDate=ts=>{const d=new Date(ts);return`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+
+function getMonthlyVal(row,yr,mo){
+  const k1=`${yr}年${String(mo).padStart(2,'0')}月销量`,k2=`${yr}年${mo}月销量`
+  return safeNum(row[k1]!==undefined&&row[k1]!==null?row[k1]:row[k2])
+}
+
+// Column letter helpers
+function colLetter(n){let s='';let i=n+1;while(i>0){const r=(i-1)%26;s=String.fromCharCode(65+r)+s;i=Math.floor((i-1)/26)}return s}
+function letterToCol(s){let n=0;for(const ch of s.toUpperCase())n=n*26+ch.charCodeAt(0)-64;return n-1}
+function getCellColLtr(ref){return ref.replace(/[0-9]/g,'')}
+
+// XML helpers for JSZip surgery
+const SSNS='http://schemas.openxmlformats.org/spreadsheetml/2006/main'
+function xfirst(parent,tag){return parent.getElementsByTagNameNS(SSNS,tag)[0]||parent.getElementsByTagName(tag)[0]||null}
+function xclone(doc,tag){const ex=doc.getElementsByTagNameNS(SSNS,tag)[0]||doc.getElementsByTagName(tag)[0];return ex?ex.cloneNode(false):doc.createElementNS(SSNS,tag)}
+function findCell(rowEl,ref){for(const ch of rowEl.childNodes){if(ch.nodeType===1&&ch.getAttribute&&ch.getAttribute('r')===ref)return ch}return null}
+function makeOrGetCell(doc,rowEl,colL,rowNum){
+  const ref=`${colL}${rowNum}`;let cell=findCell(rowEl,ref)
+  if(!cell){cell=xclone(doc,'c');cell.setAttribute('r',ref);const ni=letterToCol(colL);let ins=false;for(const ch of rowEl.childNodes){if(ch.nodeType!==1||!ch.getAttribute)continue;const cc=getCellColLtr(ch.getAttribute('r')||'');if(cc&&letterToCol(cc)>ni){rowEl.insertBefore(cell,ch);ins=true;break}}if(!ins)rowEl.appendChild(cell)}
+  return cell
+}
+function setNum(doc,rowEl,colL,rowNum,val,sid){
+  const cell=makeOrGetCell(doc,rowEl,colL,rowNum);while(cell.firstChild)cell.removeChild(cell.firstChild);cell.removeAttribute('t');if(sid!=null)cell.setAttribute('s',String(sid));const v=xclone(doc,'v');v.textContent=String(val??'');cell.appendChild(v)
+}
+function setStr(doc,rowEl,colL,rowNum,val,sid){
+  const cell=makeOrGetCell(doc,rowEl,colL,rowNum);while(cell.firstChild)cell.removeChild(cell.firstChild);cell.setAttribute('t','inlineStr');if(sid!=null)cell.setAttribute('s',String(sid));const is=xclone(doc,'is'),t=xclone(doc,'t');t.setAttribute('xml:space','preserve');t.textContent=String(val??'');is.appendChild(t);cell.appendChild(is)
+}
+function injectStyles(styXml){
+  const fillsSect=(styXml.match(/<fills[^>]*>([\s\S]*?)<\/fills>/)||[])[1]||''
+  const fillCount=(fillsSect.match(/<fill>/g)||[]).length
+  const xfsSect=(styXml.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/)||[])[1]||''
+  const xfCount=(xfsSect.match(/<xf /g)||[]).length
+  const FILLS=[
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>',
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEB9C"/><bgColor indexed="64"/></patternFill></fill>',
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill>',
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/><bgColor indexed="64"/></patternFill></fill>',
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFCE4D6"/><bgColor indexed="64"/></patternFill></fill>',
+  ]
+  // Color styles (5) + PLAIN no-fill no-wrap (index+5) + WRAP no-fill wrap (index+6)
+  const XFS=[
+    ...[0,1,2,3,4].map(i=>`<xf numFmtId="0" fontId="0" fillId="${fillCount+i}" borderId="0" xfId="0" applyFill="1"><alignment wrapText="1" vertical="top"/></xf>`),
+    // PLAIN: explicit no-fill — overrides Table column style
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>`,
+    // WRAP: no-fill + wrap text for long text columns
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>`,
+  ]
+  let out=styXml
+  out=out.replace('</fills>',FILLS.join('')+'</fills>').replace(/(<fills count=")(\d+)(")/,(m,a,n,b)=>a+(+n+5)+b)
+  out=out.replace('</cellXfs>',XFS.join('')+'</cellXfs>').replace(/(<cellXfs count=")(\d+)(")/,(m,a,n,b)=>a+(+n+7)+b)
+  return{newStyXml:out,sids:{GREEN:xfCount,YELLOW:xfCount+1,RED:xfCount+2,BLUE:xfCount+3,ORANGE:xfCount+4,PLAIN:xfCount+5,WRAP:xfCount+6}}
+}
+
+// Columns that need wrap text (long content)
+const WRAP_COLS=new Set(['预估依据说明','审核结果和原因','补货原因','标签','备注','备注(单据明细)'])
+// Column widths for new data columns
+const COL_WIDTHS={'补货时间':13,'补货数量':10,'补货原因':38,'销售均价':11,'售价':12,'销量':8,'广告花费':10,'订单毛利率':11,'本地可用':9,'可用库存':9,'标签':26,'预估汇总':10,'预估依据说明':52,'审核结果和原因':64}
+const DEFAULT_NEW_COL_WIDTH=10
+
+// Add/update <cols> column widths in worksheet XML
+function injectColWidths(wsDoc,startIdx,colNames){
+  // startIdx: 0-based index of first new column
+  let colsEl=xfirst(wsDoc,'cols')
+  if(!colsEl){
+    colsEl=wsDoc.createElementNS?wsDoc.createElementNS('http://schemas.openxmlformats.org/spreadsheetml/2006/main','cols'):wsDoc.createElement('cols')
+    const sdEl=xfirst(wsDoc,'sheetData')
+    if(sdEl&&sdEl.parentNode)sdEl.parentNode.insertBefore(colsEl,sdEl)
+  }
+  colNames.forEach((name,i)=>{
+    const colNum=startIdx+i+1  // 1-based
+    const w=COL_WIDTHS[name]||(/月.+销量|日销量/.test(name)?9:DEFAULT_NEW_COL_WIDTH)
+    const col=wsDoc.createElementNS?wsDoc.createElementNS('http://schemas.openxmlformats.org/spreadsheetml/2006/main','col'):wsDoc.createElement('col')
+    col.setAttribute('min',String(colNum))
+    col.setAttribute('max',String(colNum))
+    col.setAttribute('width',String(w))
+    col.setAttribute('customWidth','1')
+    colsEl.appendChild(col)
+  })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 2: INDEXEDDB CACHE
+// ═══════════════════════════════════════════════════════════
+const IDB_NAME='AuditSysV2',IDB_STORE='files'
+let _db=null
+function openDB(){return new Promise((res,rej)=>{const req=indexedDB.open(IDB_NAME,1);req.onupgradeneeded=e=>{e.target.result.createObjectStore(IDB_STORE)};req.onsuccess=e=>{_db=e.target.result;res(_db)};req.onerror=()=>rej(req.error)})}
+function idbPut(k,v){return new Promise((res,rej)=>{const tx=_db.transaction(IDB_STORE,'readwrite');const req=tx.objectStore(IDB_STORE).put(v,k);req.onsuccess=()=>res();req.onerror=()=>rej(req.error)})}
+function idbGet(k){return new Promise((res,rej)=>{const tx=_db.transaction(IDB_STORE,'readonly');const req=tx.objectStore(IDB_STORE).get(k);req.onsuccess=()=>res(req.result??null);req.onerror=()=>rej(req.error)})}
+
+// ── Restock History (补货记录库) ─────────────────────────────
+// Schema: {sku: string, dateTs: number(ms), qty: number, reason: string}
+// IDB key: 'restock_records' → Array of above objects
+
+// Excel serial → JS timestamp
+function excelDateToTs(serial){
+  if(!serial||isNaN(+serial))return null
+  return (+serial-25569)*86400000
+}
+// JS timestamp → display string
+function tsToDateStr(ts){
+  if(!ts)return'无记录'
+  const d=new Date(ts)
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+// Parse 补货汇总表 → array of restock records
+function parseRestockBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:false})
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null,raw:true})
+  const records=[]
+  // Auto-detect column names
+  const sample=rows[0]||{}
+  const ks=Object.keys(sample)
+  const skuCol=ks.find(k=>k.includes('编号'))||'编号（标红时有问题的）'
+  const dateCol=ks.find(k=>k.includes('下单时间')||k.includes('时间'))||'下单时间'
+  const qtyCol=ks.find(k=>k.includes('数量'))||'数量'
+  const reasonCol=ks.find(k=>k.includes('审核内容')||k.includes('审核'))||'审核内容'
+  for(const row of rows){
+    const sku=safeStr(row[skuCol]).trim();if(!sku||sku==='nan')continue
+    const rawDate=row[dateCol]
+    const dateTs=excelDateToTs(rawDate)
+    if(!dateTs)continue
+    const qty=safeNum(row[qtyCol])
+    const reason=safeStr(row[reasonCol])
+    records.push({sku,dateTs,qty,reason})
+  }
+  return records
+}
+
+// Get active records from IDB, deduplicated (latest per SKU), cleaned
+let _restockIndex={}  // sku → {dateTs, qty, reason}
+
+async function loadRestockRecords(){
+  try{
+    const stored=await idbGet('restock_records')
+    if(!stored||!Array.isArray(stored))return
+    rebuildRestockIndex(stored)
+    updateRestockCountUI(stored.length)
+  }catch(e){console.warn('Restock load failed:',e)}
+}
+
+function rebuildRestockIndex(records){
+  _restockIndex={}
+  const cutoff=Date.now()-62*24*60*60*1000  // 2 months
+  for(const r of records){
+    if(r.dateTs<cutoff)continue  // skip old
+    const prev=_restockIndex[r.sku]
+    if(!prev||r.dateTs>prev.dateTs)_restockIndex[r.sku]=r
+  }
+}
+
+function restockLookup(sku){
+  return _restockIndex[safeStr(sku).trim()]||null
+}
+
+// Merge new records into IDB (keep latest, prune >2 months)
+async function mergeAndSaveRestock(newRecords){
+  let existing=[]
+  try{const stored=await idbGet('restock_records');if(Array.isArray(stored))existing=stored}catch(e){}
+  const cutoff=Date.now()-62*24*60*60*1000
+  // Merge: existing (filtered) + new
+  const merged=[...existing.filter(r=>r.dateTs>=cutoff),...newRecords]
+  // Dedup by sku+dateTs
+  const seen=new Set()
+  const deduped=merged.filter(r=>{const k=`${r.sku}|${r.dateTs}`;if(seen.has(k))return false;seen.add(k);return true})
+  try{await idbPut('restock_records',deduped)}catch(e){console.error('补货记录保存失败:',e)}
+  rebuildRestockIndex(deduped)
+  updateRestockCountUI(deduped.length)
+  return deduped.length
+}
+
+function updateRestockCountUI(n){
+  const el=document.getElementById('restock-count')
+  if(el)el.textContent=n+'条'
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 3: RAW DATA PARSING
+// ═══════════════════════════════════════════════════════════
+
+// 3a. Ad Table (产品表现/广告表)
+function parseAdBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'})
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null,raw:true})
+  const idx={}
+  for(const row of rows){
+    const rawSku=safeStr(row['SKU']);if(!rawSku)continue
+    const store=safeStr(row['店铺'])
+    const hasData=safeNum(row['销量'])>0||safeNum(row['可用库存'])>0
+    for(const sku of rawSku.split(',').map(s=>s.trim()).filter(Boolean)){
+      const fk=`${sku}\x00${store}`
+      if(!idx[fk]||hasData)idx[fk]=row
+      if(!idx[sku]||safeNum(row['销量'])>safeNum(idx[sku]?.['销量']||0))idx[sku]=row
+    }
+  }
+  return idx
+}
+function adLookup(idx,sku,store){return idx[`${sku}\x00${store}`]||idx[sku]||{}}
+
+// 3b. 7-Day Sales (日度统计)
+// 支持两种格式：
+// 长格式：每行一条记录，列：时间/SKU/店铺/销量（原格式）
+// 宽格式：SKU+店铺一行，日期作为列名，含销量sheet（新格式）
+function parse7DayBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:false})
+
+  // ── 格式检测 ──
+  // 宽格式特征：有「销量」sheet，或第一个sheet的列包含 YYYY-MM-DD 格式日期列
+  let isWide=false, targetSheet=wb.SheetNames[0]
+  if(wb.SheetNames.includes('销量')){
+    targetSheet='销量'
+    const sample=XLSX.utils.sheet_to_json(wb.Sheets[targetSheet],{header:1,sheetRows:1})[0]||[]
+    isWide=sample.some(c=>typeof c==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.trim()))
+  }
+  if(!isWide){
+    // Check if first sheet has date columns (wide) vs 时间 column (long)
+    const sample=XLSX.utils.sheet_to_json(wb.Sheets[targetSheet],{header:1,sheetRows:1})[0]||[]
+    const hasTimeCol=sample.some(c=>safeStr(c).includes('时间'))
+    const hasDateCols=sample.some(c=>typeof c==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.trim()))
+    if(hasDateCols&&!hasTimeCol)isWide=true
+  }
+
+  if(isWide){
+    // ── 宽格式解析 ──
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[targetSheet],{defval:0,raw:true})
+    if(!rows.length)return null
+    const allKeys=Object.keys(rows[0])
+    const dateCols=allKeys.filter(k=>typeof k==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(k.trim()))
+    if(!dateCols.length)return null
+    const dates=dateCols.map(c=>c.trim()).sort()
+    const latest=dates[dates.length-1]
+    const M=+latest.slice(5,7),YEAR=+latest.slice(0,4)
+    const d2col=d=>`${d.slice(5,7)}月${d.slice(8,10)}日销量`
+    const sevenCols=dates.map(d2col)
+    const aprilCols=dates.filter(d=>+d.slice(5,7)===M).map(d2col)
+    const elapsed=aprilCols.length,REMAIN_M=30-elapsed
+    const pivot={}
+    for(const row of rows){
+      const rawSku=safeStr(row['SKU']).trim()
+      const store=safeStr(row['店铺']).trim()
+      if(!rawSku)continue
+      for(const sku of rawSku.split(',').map(s=>s.trim()).filter(Boolean)){
+        const key=`${sku}\x00${store}`
+        if(!pivot[key])pivot[key]={}
+        for(const dc of dateCols){
+          const col=d2col(dc.trim())
+          pivot[key][col]=(pivot[key][col]||0)+safeNum(row[dc])
+        }
+      }
+    }
+    return{pivot,sevenCols,aprilCols,M,YEAR,elapsed,REMAIN_M}
+  }else{
+    // ── 长格式解析（原有逻辑）──
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[targetSheet],{defval:0,raw:true})
+    const dates=[...new Set(rows.map(r=>safeStr(r['时间']).slice(0,10)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort()
+    if(!dates.length)return null
+    const latest=dates[dates.length-1]
+    const M=+latest.slice(5,7),YEAR=+latest.slice(0,4)
+    const d2col=d=>`${d.slice(5,7)}月${d.slice(8,10)}日销量`
+    const sevenCols=dates.map(d2col)
+    const aprilCols=dates.filter(d=>+d.slice(5,7)===M).map(d2col)
+    const elapsed=aprilCols.length,REMAIN_M=30-elapsed
+    const pivot={}
+    for(const row of rows){
+      const rawSku=safeStr(row['SKU']).trim()
+      const store=safeStr(row['店铺']).trim()
+      const date=safeStr(row['时间']).slice(0,10)
+      if(!rawSku||!/^\d{4}-\d{2}-\d{2}$/.test(date))continue
+      const col=d2col(date),qty=safeNum(row['销量'])
+      for(const sku of rawSku.split(',').map(s=>s.trim()).filter(Boolean)){
+        const key=`${sku}\x00${store}`
+        if(!pivot[key])pivot[key]={}
+        pivot[key][col]=(pivot[key][col]||0)+qty
+      }
+    }
+    return{pivot,sevenCols,aprilCols,M,YEAR,elapsed,REMAIN_M}
+  }
+}
+function s7Lookup(s7,sku,store){
+  // 1. 精确匹配 SKU+店铺
+  const fk=`${sku}\x00${store}`
+  if(s7.pivot[fk])return{...s7.pivot[fk]}
+  // 2. 兜底：找该SKU所有店铺，选总销量最多的那个（而不是求和，避免数量虚高）
+  let best=null,bestTotal=-1
+  for(const[k,v]of Object.entries(s7.pivot)){
+    if(!k.startsWith(sku+'\x00'))continue
+    const total=Object.values(v).reduce((a,b)=>a+b,0)
+    if(total>bestTotal){bestTotal=total;best=v}
+  }
+  return best?{...best}:null
+}
+
+// 3c. Monthly Sales (月度统计)
+function parseMonthlyBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'})
+  const sn=wb.SheetNames.includes('销量')?'销量':wb.SheetNames[0]
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:0,raw:true})
+  if(!rows.length)return{index:{},monthCols:[]}
+  const rawMoCols=Object.keys(rows[0]).filter(k=>/^\d{4}-\d{2}/.test(k))
+  const colRen={};for(const c of rawMoCols)colRen[c]=`${c.slice(0,4)}年${c.slice(5,7)}月销量`
+  const monthCols=rawMoCols.map(c=>colRen[c])
+  const index={}
+
+  // ── 正确做法：同一 SKU+店铺 下多行时，按月份逐列累加 ──
+  // 原因：同款产品可能有多个变体/ASIN，历史销量分散在不同行（如新旧款交替），
+  //       必须加总才能得到该SKU+店铺的完整销量，而非只取某一行。
+  for(const row of rows){
+    const rawSku=safeStr(row['SKU']).trim(),store=safeStr(row['店铺']).trim()
+    if(!rawSku)continue
+    // 双SKU拆分："18466,3881" → 两个key各自累加
+    for(const sku of rawSku.split(',').map(s=>s.trim()).filter(Boolean)){
+      // SKU+店铺精确key：累加同一SKU+店铺下所有行（多变体/ASIN加总）
+      const fk=`${sku}\x00${store}`
+      if(!index[fk])index[fk]={}
+      for(const[raw,std]of Object.entries(colRen)){
+        index[fk][std]=(index[fk][std]||0)+safeNum(row[raw])
+      }
+      // SKU-only兜底：记录该SKU出现过的所有店铺key，供查找时按数据量选最优店铺
+      if(!index[`_stores_${sku}`])index[`_stores_${sku}`]=[]
+      if(!index[`_stores_${sku}`].includes(fk))index[`_stores_${sku}`].push(fk)
+    }
+  }
+  return{index,monthCols}
+}
+function monthlyLookup(mly,sku,store){
+  // 1. 精确匹配 SKU+店铺（最准确）
+  const fk=`${sku}\x00${store}`
+  if(mly.index[fk])return mly.index[fk]
+  // 2. 兜底：该SKU在其他店铺有数据，选总销量最多的单个店铺（避免跨店铺合并失真）
+  const storeKeys=mly.index[`_stores_${sku}`]
+  if(!storeKeys||!storeKeys.length)return null
+  let best=null,bestTotal=-1
+  for(const k of storeKeys){
+    const data=mly.index[k];if(!data)continue
+    const total=Object.values(data).reduce((a,b)=>a+(typeof b==='number'?b:0),0)
+    if(total>bestTotal){bestTotal=total;best=data}
+  }
+  return best
+}
+
+// 3d. Category Map
+function parseCatBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'})
+  const sn=wb.SheetNames.includes('最全品类')?'最全品类':wb.SheetNames[0]
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:null,raw:true})
+  const m={};for(const r of rows){const c=safeStr(r['产品代码']),n=safeStr(r['产品分类']);if(c&&n)m[n]=c}
+  m['吊牌']='YSK';return m
+}
+
+// 3e. Trend Map
+function parseTrendBuf(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'})
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null,raw:true})
+  if(!rows.length)return{coeffs:{},aggM:1.507,aggN:1.100}
+  const ks=Object.keys(rows[0])
+  const catCol=ks.find(k=>k.includes('二级分类'))||'二级分类'
+  const valCol=ks.find(k=>k.includes('销量'))||'求和项:销量'
+  const moCol=ks.find(k=>k.includes('月份'))||'月份'
+  const VALID=['3月','4月','5月','6月'],piv={},agg={3:0,4:0,5:0,6:0}
+  for(const r of rows){
+    const mo=safeStr(r[moCol]);if(!VALID.includes(mo))continue
+    const cat=safeStr(r[catCol]).toUpperCase().trim();if(!cat||['(空白)','总计'].includes(cat))continue
+    const val=safeNum(r[valCol]);if(!piv[cat])piv[cat]={}
+    piv[cat][mo]=(piv[cat][mo]||0)+val;const n=parseInt(mo);if(n>=3&&n<=6)agg[n]=(agg[n]||0)+val
+  }
+  const coeffs={}
+  for(const[cat,ms]of Object.entries(piv)){const[m3,m4,m5]=[ms['3月']||0,ms['4月']||0,ms['5月']||0];coeffs[cat]={c43:m3>0?+(m4/m3).toFixed(3):null,c54:m4>0?+(m5/m4).toFixed(3):null}}
+  return{coeffs,aggM:agg[3]>0?+(agg[4]/agg[3]).toFixed(4):1.507,aggN:agg[4]>0?+(agg[5]/agg[4]).toFixed(4):1.100}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 4: MATCHING PIPELINE - build master rows from raw data
+// ═══════════════════════════════════════════════════════════
+const SKU_PREFIX=[['CXPGSQ','磁吸皮革书签'],['MZSSP','木质首饰盘'],['BXGTZ','不锈钢骰子'],['MZTZ','木质骰子'],['ZZWO','针织玩偶'],['ZZHK','纸质贺卡'],['YKLSQ','亚克力书签'],['YKLBJ','亚克力摆件'],['SBXL','书本项链'],['GEFQ','高尔夫球'],['PGBT','皮革杯套'],['PGSQ','皮革书签'],['MZSQ','木质书签'],['FBB','帆布包'],['SSP','首饰盘'],['KPQ','开瓶器'],['BQ','棒球'],['MJ','帽夹'],['WZ','袜子'],['YB','硬币'],['TZ','不锈钢骰子'],['ZNZ','指南针'],['KP','开瓶器'],['SQ','书签'],['PGP','皮革系列'],['PQ','皮革系列'],['TJB','调酒杯'],['JZ','挂件'],['MT','毛毯'],['SZ','毛毯']]
+function getCatFromSku(sku,hint=''){
+  if(hint&&hint.trim()&&hint!=='nan')return hint.trim()
+  const s=safeStr(sku).toUpperCase()
+  if(/^\d+$/.test(s))return'书签'
+  for(const[pfx,cat]of SKU_PREFIX)if(s.startsWith(pfx))return cat
+  return'未知'
+}
+
+function getCoeff(catName,catMap,trendMap){
+  const code=safeStr(catMap[catName]||'').toUpperCase().trim()
+  const entry=trendMap.coeffs[code]
+  if(entry)return{c43:entry.c43??trendMap.aggM,c54:entry.c54??trendMap.aggN,code,matched:true}
+  return{c43:trendMap.aggM,c54:trendMap.aggN,code:code||'聚合',matched:false}
+}
+
+// Detect if main table is already a formatted master table or raw
+function detectMainTableMode(headers){
+  const has7day=headers.some(h=>/\d{2}月\d{2}日销量/.test(h))
+  const hasMonthly=headers.some(h=>/\d{4}年\d{2}月销量/.test(h))
+  return has7day&&hasMonthly?'DIRECT':'RAW'
+}
+
+// Build master rows from raw source files
+function buildMasterRows(rawRows,fileType,adIdx,s7data,mlyData){
+  const skuKey=fileType==='ORDER'?'SKU':'编号'
+  const qtyKey=fileType==='ORDER'?'发货量':'数量'
+  const SOLD_COL=`${s7data.YEAR}年${String(s7data.M).padStart(2,'0')}月已售`
+  // 当月月度统计列名（将被合并到已售列，不单独输出）
+  const CURR_MON_COL=`${s7data.YEAR}年${String(s7data.M).padStart(2,'0')}月销量`
+  
+  return rawRows.map(row=>{
+    const sku=safeStr(row[skuKey]).trim()
+    const store=safeStr(row['店铺']).trim()
+    const qty=safeNum(row[qtyKey])
+    const catHint=fileType!=='ORDER'?safeStr(row['名称']):''
+    const cat=getCatFromSku(sku,catHint)
+    
+    const ad=adLookup(adIdx,sku,store)
+    const sevenRaw=s7Lookup(s7data,sku,store)
+    const monthlyRaw=monthlyLookup(mlyData,sku,store)
+    
+    // 7天日度列
+    const seven={}
+    for(const col of s7data.sevenCols)seven[col]=sevenRaw?(sevenRaw[col]??'无数据'):'无数据'
+    
+    // 月度历史列：排除当月（当月数据合并为「已售」，避免重复）
+    const monthly={}
+    for(const col of mlyData.monthCols){
+      if(col===CURR_MON_COL)continue   // 当月跳过，用已售列代替
+      monthly[col]=monthlyRaw?(monthlyRaw[col]??'无数据'):'无数据'
+    }
+    
+    // ── M月已售计算 ──
+    // 优先使用月度统计当月数据：覆盖整个M月至导出日，比7天窗口更完整
+    const monthlyMs=monthlyRaw?safeNum(monthlyRaw[CURR_MON_COL]):0
+    // 兜底：若月度统计无当月数据，使用7天窗口内的M月天数累加
+    const sevenMs=s7data.aprilCols.reduce((sum,col)=>sum+safeNum(seven[col]),0)
+    const ms=monthlyMs>0?monthlyMs:sevenMs
+    
+    const masterRow={
+      [skuKey]:sku,[qtyKey]:qty,'店铺':store,
+      ...(fileType==='ORDER'?{'备注(单据明细)':safeStr(row['备注(单据明细)']||row['备注']),'补货时间':'','补货数量':'','补货原因':''}
+        :{...row,'名称':cat}),
+      '销售均价':ad['销售均价'],'售价':ad['售价(总价)'],'销量':ad['销量'],'广告花费':ad['广告花费'],
+      '订单毛利率':ad['订单毛利率'],'本地可用':safeNum(ad['本地可用']),'可用库存':safeNum(ad['可用库存']),'标签':safeStr(ad['listing标签']),
+      ...seven,...monthly,
+      [SOLD_COL]:ms,   // 已售 = 月度统计当月（更完整）或7天窗口兜底
+      '名称':cat
+    }
+    return masterRow
+  })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 5: CONFIG DETECTION
+// ═══════════════════════════════════════════════════════════
+function detectCfg(headers,fileType,s7data){
+  // Direct mode: extract from headers
+  const soldCol=headers.find(h=>/\d{4}年\d{2}月已售/.test(h))
+  let M=s7data?.M||4,YEAR=s7data?.YEAR||2026,ELAPSED=s7data?.elapsed||0,REMAIN_M=s7data?.REMAIN_M||28
+  if(soldCol&&!s7data){const m=soldCol.match(/(\d{4})年(\d{2})月已售/);if(m){YEAR=+m[1];M=+m[2]}}
+  const SOLD_COL=soldCol||`${YEAR}年${String(M).padStart(2,'0')}月已售`
+  const sevenDays=headers.filter(h=>/^\d{2}月\d{2}日销量$/.test(h))
+  if(!s7data){ELAPSED=sevenDays.filter(c=>{const m=c.match(/^(\d{2})月/);return m&&+m[1]===M}).length;REMAIN_M=30-ELAPSED}
+  const predCols=headers.filter(h=>/\d{4}年\d+月预估/.test(h)&&!['汇总','Sku','依据'].some(x=>h.includes(x))).sort((a,b)=>(+(a.match(/年(\d+)月/)?.[1]||0))-(+(b.match(/年(\d+)月/)?.[1]||0)))
+  const SEVEN_DAYS=s7data?s7data.sevenCols:sevenDays
+  return{M,YEAR,ELAPSED,REMAIN_M,SOLD_COL,SEVEN_DAYS,PRED_M:predCols[0]||`${YEAR}年${M}月预估`,PRED_MN:predCols[1]||`${YEAR}年${M+1}月预估`,QTY_COL:fileType==='ORDER'?'发货量':'数量',SKU_COL:fileType==='ORDER'?'SKU':'编号',fileType}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 6: AUDIT CORE (Stage, Forecast, Conclusions)
+// ═══════════════════════════════════════════════════════════
+function isAllNodata(row,cfg){
+  const{SEVEN_DAYS,SOLD_COL,M,YEAR}=cfg
+  for(const c of SEVEN_DAYS){const v=row[c];if(v!==null&&v!==undefined&&!['无数据','无记录'].includes(safeStr(v))&&safeNum(v)!==0)return false}
+  if(safeNum(row[SOLD_COL])!==0)return false
+  for(let m=1;m<=12;m++)if(getMonthlyVal(row,2025,m)!==0)return false
+  if(getMonthlyVal(row,YEAR,M-1)!==0)return false
+  return true
+}
+
+function getStage(row,cfg){
+  const{M,YEAR,SEVEN_DAYS,SOLD_COL}=cfg
+  const v7=SEVEN_DAYS.map(c=>{const v=row[c];return(v==null||['无数据','无记录'].includes(safeStr(v)))?null:safeNum(v)}).filter(v=>v!==null)
+  const s7=v7.reduce((a,b)=>a+b,0),ms=safeNum(row[SOLD_COL])
+  const p1=getMonthlyVal(row,YEAR,M-1),p2=M>2?getMonthlyVal(row,YEAR,M-2):getMonthlyVal(row,YEAR-1,12)
+  if(p1===0&&p2===0&&s7===0&&ms===0)return'近期无动销'
+  const y25=Array.from({length:12},(_,i)=>getMonthlyVal(row,2025,i+1))
+  if(y25.filter(v=>v>_params.oldSalesThreshold).length>=_params.oldMonthCount)return'老品'
+  if(y25.slice(0,9).every(v=>v===0)&&(y25.slice(9).some(v=>v>0)||p1>0||p2>0||ms>0||s7>0))return'新品（近期有销量）'
+  if(y25.filter(v=>v>0).length>=3)return'常青产品'
+  return'新品（近期有销量）'
+}
+
+function runForecast(row,cfg,catMap,trendMap){
+  const{M,YEAR,REMAIN_M,SEVEN_DAYS,SOLD_COL,QTY_COL,SKU_COL}=cfg
+  const sku=safeStr(row[SKU_COL]),cat=safeStr(row['名称'])||getCatFromSku(sku)
+  const qty=safeNum(row[QTY_COL]),inv=safeNum(row['可用库存']),loc=safeNum(row['本地可用'])
+  const gp=parsePct(row['订单毛利率']),ms=safeNum(row[SOLD_COL])
+  const v7=SEVEN_DAYS.map(c=>{const v=row[c];return(v==null||['无数据','无记录'].includes(safeStr(v)))?null:safeNum(v)}).filter(v=>v!==null)
+  const dout=v7.filter(v=>v>0).length,da=v7.length>0?v7.reduce((a,b)=>a+b,0)/7:null
+  const mcM=da!==null?da*REMAIN_M+ms:null,mcN=da!==null?da*30:null,ref=mcM
+  const mcL=da!==null?`日均=${da.toFixed(2)}单/天; ${M}月预估=${da.toFixed(2)}×${REMAIN_M}+${ms.toFixed(0)}=${mcM?.toFixed(0)}; ${M+1}月=${da.toFixed(2)}×30=${mcN?.toFixed(0)}`:'无7天数据，C不可用'
+  
+  const lm1=getMonthlyVal(row,2025,M-1),lm=getMonthlyVal(row,2025,M),lmn=getMonthlyVal(row,2025,M+1),tm1=getMonthlyVal(row,YEAR,M-1)
+  let maM=null,maN=null,maL=''
+  if(lm1>=_params.minSalesBase&&tm1>0){const ca=Math.min(lm/lm1,_params.maxCoeff),cb=lm>0?Math.min(lmn/lm,_params.maxCoeff):1;maM=ca*tm1;maN=cb*maM;maL=`去年${M-1}月=${lm1.toFixed(0)},去年${M}月=${lm.toFixed(0)},今年${M-1}月=${tm1.toFixed(0)}; ${M}月系数=${ca.toFixed(3)}; 预估=${maM.toFixed(0)}; ${M+1}月系数=${cb.toFixed(3)}; 预估=${maN.toFixed(0)}`}
+  else maL=lm1<_params.minSalesBase?`去年${M-1}月=${lm1.toFixed(0)}<${_params.minSalesBase}，放弃A`:`今年${M-1}月=${tm1.toFixed(0)}=0，A不可用`
+  
+  const{c43:cbM,c54:cbN,code:catCode,matched}=getCoeff(cat,catMap,trendMap)
+  let mbM=null,mbN=null,mbL=''
+  if(tm1>0&&cbM){const src=matched?`品类'${cat}'(${catCode})`:`品类'${cat}'(${catCode||'?'})→聚合`;mbM=cbM*tm1;mbN=cbN?cbN*mbM:mbM;const cbNs=cbN?cbN.toFixed(3):'N/A';mbL=`${src} ${M}/${M-1}月系数=${cbM.toFixed(3)}; ${M}月预估=${mbM.toFixed(0)}; ${M+1}月系数=${cbNs}; 预估=${mbN.toFixed(0)}`}
+  else mbL=tm1===0?`今年${M-1}月=0，B不可用`:'B系数无法计算'
+  
+  if(ms>0){if(maM&&maM<ms){maL+=` ⚠放弃:${maM.toFixed(0)}<已售${ms.toFixed(0)}`;maM=maN=null}if(mbM&&mbM<ms){mbL+=` ⚠放弃:${mbM.toFixed(0)}<已售${ms.toFixed(0)}`;mbM=mbN=null}}
+  if(ref&&ref>0){if(maM&&maM>ref*_params.reasonableMultiplier){maL+=` ⚠不合理`;maM=maN=null}if(mbM&&mbM>ref*_params.reasonableMultiplier){mbL+=` ⚠不合理`;mbM=mbN=null}}
+  
+  let sM=null,sN=null,method='无法预估',reasons=[]
+  if(maM&&mbM){const d=Math.abs(maM-mbM)/Math.max(maM,mbM)*100;if(d<_params.diffThreshold){[sM,sN,method]=[maM,maN,'A（同比）'];reasons.push(`A=${maM.toFixed(0)} B=${mbM.toFixed(0)} 差距${d.toFixed(1)}%<${_params.diffThreshold}%，选A`)}else if(mbM>maM){[sM,sN,method]=[mbM,mbN,'B（趋势）'];reasons.push(`B=${mbM.toFixed(0)}>A=${maM.toFixed(0)} 差距${d.toFixed(1)}%≥${_params.diffThreshold}%，选B`)}else{[sM,sN,method]=[maM,maN,'A（同比）'];reasons.push(`A=${maM.toFixed(0)}>B=${mbM.toFixed(0)}，选A`);if(d>_params.conservativeThreshold&&mcM&&mcM<sM){[sM,sN,method]=[mcM,mcN,'C（保守）'];reasons.push(`差距>${_params.conservativeThreshold}%，取保守C=${mcM.toFixed(0)}`)}}}
+  else if(maM){[sM,sN,method]=[maM,maN,'A（同比）'];reasons.push('仅A可用')}
+  else if(mbM){[sM,sN,method]=[mbM,mbN,'B（趋势）'];reasons.push('仅B可用')}
+  else if(mcM){[sM,sN,method]=[mcM,mcN,'C（日均）'];reasons.push('A/B不可用，用C')}
+  else reasons.push('A/B/C均不可用')
+  
+  const predM=sM?Math.round(sM):null,predN=sN?Math.round(sN):sM?Math.round(sM):null
+  const predSum=predM?predM+predN:null
+  const needQtyBase=predSum?predSum-ms-inv:null
+  
+  const expl=[`【产品类别】${cat}`,`【选用方法】${method}`,`【选择依据】${reasons.join('；')}`,maL&&`【同比计算】${maL}`,mbL&&`【趋势计算】${mbL}`,mcL&&`【7天日均参照】${mcL}`,ref&&`【合理性说明】月度参考值=${ref.toFixed(0)}，各方法需≤${(ref*_params.reasonableMultiplier).toFixed(0)}`].filter(Boolean).join('\n')
+  
+  return{predM,predN,predSum,needQtyBase,expl,method,dout,da,ms,inv,loc,gp,qty,cat,ref}
+}
+
+function auditPurchase(row,cfg,catMap,trendMap){
+  const dy=safeStr(row['打样编号']),qty=safeNum(row[cfg.QTY_COL])
+  if(dy.startsWith('DY'))return{predM:null,predN:null,predSum:null,needQty:null,explanation:`【直接通过】打样编号${dy}，不做预估`,audit:`【审核通过】；打样新品；按初批量，计划${qty}个`,color:'BLUE',stage:'打样新品',dout:0}
+  if(isAllNodata(row,cfg))return{predM:null,predN:null,predSum:null,needQty:null,explanation:'【直接通过】全字段无数据，不做预估',audit:`【审核通过】；全字段无数据；按初批量，计划${qty}个`,color:'BLUE',stage:'全字段无数据',dout:0}
+  const stage=getStage(row,cfg)
+  const fc=runForecast(row,cfg,catMap,trendMap)
+  const needQty=fc.predSum!==null?Math.round(fc.predSum-fc.ms-fc.inv-fc.loc):null
+  const expl=fc.expl+`\n【SKU阶段】${stage}`,isNew=stage.includes('新品')
+  const{M}=cfg,{predM,predN,predSum,dout,gp,qty:qty2,ms,inv,loc}=fc
+  let audit='',color='GREEN'
+  if(fc.method==='无法预估'){audit=`【无法预估】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；计划${qty2}个`;color='RED'}
+  else if(stage==='近期无动销'){audit=`【审核建议暂缓】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个；计划${qty2}个`;color='RED'}
+  else if(gp<0){audit=`【审核建议谨慎】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%（负毛利）；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个；计划${qty2}个`;color='RED'}
+  else if(needQty===null){audit=`【审核通过】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；计划${qty2}个`;color=isNew?'BLUE':'GREEN'}
+  else if(needQty<=0){audit=`【审核通过（略多）】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个(库存已足)；计划${qty2}个`;color=isNew?'BLUE':'GREEN'}
+  else{const gap=qty2-needQty;if(gap<0&&Math.abs(gap)>Math.max(needQty*_params.gapRatio,_params.gapUnits)){audit=`【审核建议补量】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个(=汇总${predSum}-已售${Math.round(ms)}-库存${Math.round(inv)}-本地${Math.round(loc)})；计划${qty2}个(缺口${-gap}个)`;color='YELLOW'}else if(gap>Math.max(needQty*_params.gapRatio,_params.gapUnits)){audit=`【审核通过（略多）】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个；计划${qty2}个(多${gap}个)`;color=isNew?'BLUE':'GREEN'}else{audit=`【审核通过】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需补${needQty}个；计划${qty2}个`;color=isNew?'BLUE':'GREEN'}}
+  return{predM,predN,predSum,needQty,explanation:expl,audit,color,stage,dout}
+}
+
+function auditOrder(row,cfg,catMap,trendMap){
+  const restock=restockLookup(safeStr(row[cfg.SKU_COL]))
+  const daysAgo=restock?Math.floor((Date.now()-restock.dateTs)/(86400000)):null
+  const hasRecentRestock=daysAgo!==null&&daysAgo>=0&&daysAgo<=_params.restockDays
+
+  // Fill the 3 restock columns
+  row['补货时间']=restock?tsToDateStr(restock.dateTs):'无记录'
+  row['补货数量']=restock?restock.qty:'无记录'
+  row['补货原因']=restock?restock.reason:'无记录'
+
+  if(isAllNodata(row,cfg)){const qty=safeNum(row[cfg.QTY_COL]),loc=safeNum(row['本地可用']);return{predM:null,predN:null,predSum:null,needQty:null,explanation:'【直接通过】全字段无数据，不做预估',audit:`【排单通过（无数据新品）】；全字段无数据；计划${qty}个；本地${loc}个`,color:'BLUE',stage:'全字段无数据',dout:0}}
+  const stage=getStage(row,cfg)
+  const fc=runForecast(row,cfg,catMap,trendMap)
+  const needQty=fc.predSum!==null?Math.round(fc.predSum-fc.ms-fc.inv):null
+  const restockNote=hasRecentRestock?`近期补货记录（${daysAgo}天前，${restock.qty}个）`:(daysAgo!==null?`补货记录已超1个月（${daysAgo}天前）`:'无补货记录（初审）')
+  const expl=fc.expl+`\n【SKU阶段】${stage}\n【补货记录】${restockNote}`;const{M}=cfg
+  const{predM,predN,predSum,dout,gp,qty,ms,inv,loc}=fc
+  const qa=needQty!==null&&qty>loc&&needQty>0?`；⚠️计划${qty}>本地${loc}`:''
+  let audit='',color='GREEN'
+  if(gp<0&&!hasRecentRestock){audit=`【排单建议谨慎】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%（负毛利，无补货记录）；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个；计划${qty}个；本地${loc}个`;color='RED'}
+  else if(gp<0&&hasRecentRestock){audit=`【排单关注毛利】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%（有补货记录）；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个；计划${qty}个；本地${loc}个`;color='ORANGE'}
+  else if(stage==='近期无动销'&&!hasRecentRestock){audit=`【排单建议暂缓】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个；计划${qty}个；本地${loc}个`;color='RED'}
+  else if(needQty===null||fc.method==='无法预估'){audit=`【排单参考】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；无法预估；计划${qty}个；本地${loc}个`;color='BLUE'}
+  else if(needQty<=0){audit=`【排单参考】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个(FBA已充足)；计划${qty}个；本地${loc}个`;color='BLUE'}
+  else{const gap=qty-needQty;if(gap<0&&Math.abs(gap)>Math.max(needQty*_params.gapRatio,_params.gapUnits)){audit=`【排单建议补量】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个(=汇总${predSum}-已售${Math.round(ms)}-FBA${Math.round(inv)})；计划${qty}个(缺口${-gap}个)；本地${loc}个${qa}`;color='YELLOW'}else if(gap>Math.max(needQty*_params.gapRatio,_params.gapUnits)){audit=`【排单通过（略多）】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个；计划${qty}个(多${gap}个)；本地${loc}个`;color='GREEN'}else{audit=`【排单通过】；${stage}；7天${dout}天出单；毛利${gp.toFixed(1)}%；预估${M}月${predM}/(${M+1}月)${predN}；需排单${needQty}个；计划${qty}个；本地${loc}个`;color='GREEN'}}
+  return{predM,predN,predSum,needQty,explanation:expl,audit,color,stage,dout}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 7: EXPORT (generate new xlsx from scratch + color)
+// ═══════════════════════════════════════════════════════════
+const CLR={GREEN:'C6EFCE',YELLOW:'FFEB9C',RED:'FFC7CE',BLUE:'BDD7EE',ORANGE:'FCE4D6'}
+const TAG_CLS={GREEN:'tag-g',YELLOW:'tag-y',RED:'tag-r',BLUE:'tag-b',ORANGE:'tag-o'}
+const getTag=a=>(a.match(/【([^】]+)】/)||[])[1]||'—'
+
+async function doExport(){
+  const btn=document.getElementById('export-btn');btn.disabled=true;btn.textContent='⏳ 导出中...'
+  try{
+    // ── Open ORIGINAL file (preserves images, all formatting) ──
+    const zip=await JSZip.loadAsync(_bufs.main)
+
+    // ── Detect real sheet path from workbook rels ──
+    let wsPath='xl/worksheets/sheet1.xml'
+    try{
+      const wbXml=await zip.file('xl/workbook.xml').async('string')
+      const wbDoc=new DOMParser().parseFromString(wbXml,'application/xml')
+      const sheetEl=wbDoc.querySelector('sheet')||wbDoc.getElementsByTagName('sheet')[0]
+      const rId=sheetEl&&(sheetEl.getAttribute('r:id')||sheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'))
+      if(rId){
+        const relsXml=await zip.file('xl/_rels/workbook.xml.rels').async('string')
+        const rDoc=new DOMParser().parseFromString(relsXml,'application/xml')
+        for(const rel of Array.from(rDoc.getElementsByTagName('Relationship'))){
+          if(rel.getAttribute('Id')===rId){
+            const t=rel.getAttribute('Target')
+            wsPath=t.startsWith('/')?t.slice(1):(t.startsWith('worksheets/')?`xl/${t}`:`xl/worksheets/${t.replace(/.*\//,'')}`)
+            break
+          }
+        }
+      }
+    }catch(e){console.warn('Sheet path detection failed, using sheet1.xml')}
+
+    // ── Read shared strings ──
+    const ss=[]
+    const ssFile=zip.file('xl/sharedStrings.xml')
+    if(ssFile){
+      const sDoc=new DOMParser().parseFromString(await ssFile.async('string'),'application/xml')
+      for(const si of Array.from(sDoc.getElementsByTagName('si'))){
+        ss.push(Array.from(si.getElementsByTagName('t')).map(t=>t.textContent).join(''))
+      }
+    }
+
+    // ── Parse worksheet XML ──
+    const wsRaw=await zip.file(wsPath).async('string')
+    const wsDoc=new DOMParser().parseFromString(wsRaw,'application/xml')
+    const allRowEls=Array.from((xfirst(wsDoc,'sheetData')||wsDoc).getElementsByTagName('row'))
+    const hdrRowEl=allRowEls.find(r=>r.getAttribute('r')==='1')
+
+    // ── Build column map from ORIGINAL header row ──
+    const origColMap={}  // colName → 0-based index
+    if(hdrRowEl){
+      for(const cell of hdrRowEl.childNodes){
+        if(cell.nodeType!==1||!cell.getAttribute)continue
+        const ref=cell.getAttribute('r');if(!ref)continue
+        const colL=getCellColLtr(ref)
+        const t=cell.getAttribute('t');const v=xfirst(cell,'v')
+        const is_=xfirst(cell,'is');const tEl=is_&&xfirst(is_,'t')
+        let name=''
+        if(tEl)name=tEl.textContent
+        else if(v)name=t==='s'?(ss[+v.textContent]||''):v.textContent
+        if(name)origColMap[name]=letterToCol(colL)
+      }
+    }
+    const origMaxC=Object.values(origColMap).length?Math.max(...Object.values(origColMap)):0
+
+    // ── Determine which columns from _masterRows are NEW (not in original) ──
+    // Master row columns: all keys from first result row
+    const masterCols=_masterRows.length?Object.keys(_masterRows[0]).filter(k=>!k.startsWith('_')):[]
+    const newCols=masterCols.filter(k=>origColMap[k]===undefined)
+    // Always put audit column last
+    const auditKey='审核结果和原因'
+    const newColsOrdered=[...newCols.filter(k=>k!==auditKey),auditKey]
+
+    // ── Assign column letters to new columns ──
+    const newColMap={}  // colName → letter
+    newColsOrdered.forEach((col,i)=>{newColMap[col]=colLetter(origMaxC+1+i)})
+
+    // ── Inject color + plain + wrap styles ──
+    const styRaw=await zip.file('xl/styles.xml').async('string')
+    const{newStyXml,sids}=injectStyles(styRaw)
+    zip.file('xl/styles.xml',newStyXml)
+
+    // ── Write new column headers (row 1, PLAIN style) ──
+    if(hdrRowEl){
+      newColsOrdered.forEach(col=>{
+        setStr(wsDoc,hdrRowEl,newColMap[col],1,col,sids.PLAIN)
+      })
+    }
+
+    // ── Add column widths for new columns ──
+    injectColWidths(wsDoc,origMaxC,newColsOrdered)
+
+    // ── Truncate Excel Table refs to stop at original last column ──
+    // (prevents Table style from bleeding into our new columns)
+    try{
+      const wsRelPath=wsPath.replace('xl/worksheets/','xl/worksheets/_rels/')+'.rels'
+      const wsRelFile=zip.file(wsRelPath)
+      if(wsRelFile){
+        const wsRelXml=await wsRelFile.async('string')
+        const wsRelDoc=new DOMParser().parseFromString(wsRelXml,'application/xml')
+        for(const rel of Array.from(wsRelDoc.getElementsByTagName('Relationship'))){
+          if(!(rel.getAttribute('Type')||'').includes('/table'))continue
+          const tgt=rel.getAttribute('Target')||''
+          const tblPath=tgt.startsWith('/')?tgt.slice(1):('xl/tables/'+tgt.replace(/.*\//,''))
+          const tblFile=zip.file(tblPath);if(!tblFile)continue
+          let tblXml=await tblFile.async('string')
+          const origLastLtr=colLetter(origMaxC)
+          // Clamp ref end column to original last column
+          tblXml=tblXml.replace(/(\bref=")([A-Z]+)(\d+):([A-Z]+)(\d+)(")/g,
+            (m,q1,c1,r1,_c2,r2,q2)=>`${q1}${c1}${r1}:${origLastLtr}${r2}${q2}`)
+          tblXml=tblXml.replace(/(<autoFilter\b[^>]+\bref=")([^"]+)(")/g,(m,q1,ref,q2)=>{
+            const p=ref.split(':');return p.length===2?`${q1}${p[0]}:${origLastLtr}${p[1].replace(/^[A-Z]+/,'')}${q2}`:m
+          })
+          zip.file(tblPath,tblXml)
+        }
+      }
+    }catch(e){console.warn('Table range fix skipped:',e)}
+
+    // ── Determine which original cols to update ──
+    const needCol=_cfg.fileType==='ORDER'?'预估Sku需排单数量':'预估Sku需补货数量'
+    const predCols={[_cfg.PRED_M]:'predM',[_cfg.PRED_MN]:'predN','预估汇总':'predSum',[needCol]:'needQty'}
+    const explCol='预估依据说明'
+
+    // ── Write each data row ──
+    _results.forEach((r,i)=>{
+      const mr=_masterRows[i]
+      const rowNum=i+2
+      const rowEl=allRowEls.find(row=>row.getAttribute('r')===String(rowNum))
+      if(!rowEl)return
+      const sid=sids[r.color]??sids.BLUE   // audit cell color
+
+      // Update existing prediction cols (if already in original file) — PLAIN style
+      Object.entries(predCols).forEach(([col,key])=>{
+        const existL=origColMap[col]!==undefined?colLetter(origColMap[col]):null
+        if(existL&&r[key]!=null)setNum(wsDoc,rowEl,existL,rowNum,r[key],sids.PLAIN)
+      })
+      if(origColMap[explCol]!==undefined&&r.explanation)
+        setStr(wsDoc,rowEl,colLetter(origColMap[explCol]),rowNum,r.explanation,sids.WRAP)
+      if(origColMap[auditKey]!==undefined)
+        setStr(wsDoc,rowEl,colLetter(origColMap[auditKey]),rowNum,r.audit,sid)
+
+      // Write ALL new columns with appropriate styles (no color except audit)
+      newColsOrdered.forEach(col=>{
+        const colL=newColMap[col]
+        const isAudit=col===auditKey
+        let val
+        if(isAudit)val=r.audit
+        else if(col==='预估依据说明')val=r.explanation
+        else if(predCols[col]!=null)val=r[predCols[col]]
+        else val=mr[col]
+        if(val==null||val===undefined||val==='')return
+
+        // Style: audit=color, wrap-text cols=WRAP, others=PLAIN
+        const cellSid=isAudit?sid:(WRAP_COLS.has(col)?sids.WRAP:sids.PLAIN)
+        if(typeof val==='number')setNum(wsDoc,rowEl,colL,rowNum,val,cellSid)
+        else setStr(wsDoc,rowEl,colL,rowNum,String(val),cellSid)
+      })
+      // ⚠️ DO NOT touch row height — images are anchored to row heights
+      //    Modifying ht/customHeight would collapse rows and lose image positions
+    })
+
+    // ── Update sheet dimension ──
+    const totalCols=origMaxC+newColsOrdered.length
+    const dimEl=xfirst(wsDoc,'dimension')
+    if(dimEl)dimEl.setAttribute('ref',`A1:${colLetter(totalCols)}${_results.length+1}`)
+
+    // ── Serialize & save back — must preserve ALL namespaces intact ──
+    // Problem: XMLSerializer may rename xmlns:r → xmlns:NS1, which breaks
+    // <drawing r:id="rId1"/> → Excel can't find the drawing → images lost
+    // Fix: remap NSn prefixes back to their canonical conventional names
+    let wsOut=new XMLSerializer().serializeToString(wsDoc.documentElement)
+    const NS_MAIN='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+
+    // Known namespace URIs → canonical prefix
+    const KNOWN_NS={
+      'http://schemas.openxmlformats.org/officeDocument/2006/relationships':'r',
+      'http://schemas.openxmlformats.org/markup-compatibility/2006':'mc',
+      'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main':'x14',
+      'http://www.w3.org/2001/XMLSchema-instance':'xsi',
+      'http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing':'xdr',
+      'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing':'rDr',
+    }
+    // Find all NSn declarations XMLSerializer introduced, remap to canonical prefix
+    const renameMap={}
+    for(const[,pfx,uri]of wsOut.matchAll(/xmlns:(NS\d+)="([^"]+)"/g)){
+      if(KNOWN_NS[uri])renameMap[pfx]=KNOWN_NS[uri]
+    }
+    // Apply renames: replace all `NSn:` occurrences with canonical prefix
+    for(const[from,to]of Object.entries(renameMap)){
+      wsOut=wsOut.split(`${from}:`).join(`${to}:`)
+      wsOut=wsOut.split(`xmlns:${from}=`).join(`xmlns:${to}=`)
+    }
+    // Remove any leftover unmapped NSn declarations (safe to drop these)
+    wsOut=wsOut.replace(/\sxmlns:NS\d+="[^"]*"/g,'')
+    // Reposition main namespace to the opening <worksheet> tag
+    wsOut=wsOut.split(NS_MAIN).join('').replace('<worksheet',`<worksheet ${NS_MAIN}`)
+    wsOut='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+wsOut
+    zip.file(wsPath,wsOut)
+
+    // ── Download with ORIGINAL filename ──
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}})
+    const url=URL.createObjectURL(blob)
+    const a=document.createElement('a')
+    a.href=url
+    a.download=_mainFileName||`审核结果_${new Date().toISOString().slice(0,10)}.xlsx`
+    document.body.appendChild(a);a.click();document.body.removeChild(a)
+    setTimeout(()=>URL.revokeObjectURL(url),2000)
+  }catch(e){alert('导出失败：'+e.message+'\n\n'+e.stack)}
+  finally{btn.disabled=false;btn.textContent='⬇ 导出 Excel'}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 8: APP STATE & MAIN RUN LOGIC
+// ═══════════════════════════════════════════════════════════
+let _bufs={main:null,s7:null,ad:null,monthly:null,cat:null,trend:null}
+let _results=null,_masterRows=null,_cfg=null,_fileType=null,_filter='all',_expanded=null
+let _aiMode=false
+let _mainFileName=''   // stores original uploaded filename for export
+
+function checkReady(){
+  const hasDaily=_bufs.main&&_bufs.s7
+  const hasCache=_bufs.ad&&_bufs.monthly&&_bufs.cat&&_bufs.trend
+  document.getElementById('run-btn').disabled=!(hasDaily&&hasCache)
+  if(!_bufs.s7)document.getElementById('lbl-s7').className='upzone needs-file'
+  if(!_bufs.ad)document.getElementById('lbl-ad').className='upzone needs-file'
+  if(!_bufs.monthly)document.getElementById('lbl-monthly').className='upzone needs-file'
+  if(!_bufs.cat)document.getElementById('lbl-cat').className='upzone needs-file'
+  if(!_bufs.trend)document.getElementById('lbl-trend').className='upzone needs-file'
+}
+
+function setProgress(pct){document.getElementById('prog-bar').style.width=pct+'%'}
+
+function fileToBuf(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('读取失败'));r.readAsArrayBuffer(file)})}
+
+async function onRestockFile(input){
+  const f=input.files[0];if(!f)return
+  const buf=await fileToBuf(f)
+  const records=parseRestockBuf(buf)
+  const total=await mergeAndSaveRestock(records)
+  const badge=document.getElementById('restock-badge')
+  badge.className='z-status';badge.style.color='#d97706';badge.textContent=`✓ 已导入 ${records.length} 条，共 ${total} 条有效记录`
+  document.getElementById('restock-fname').textContent=f.name
+  document.getElementById('restock-date').textContent='上传时间：'+fmtDate(Date.now())
+  document.getElementById('fn-restock').style.display='block'
+  document.getElementById('lbl-restock').className='upzone has-file'
+  document.getElementById('lbl-restock').style.borderColor='#f59e0b'
+  document.getElementById('lbl-restock').style.background='#fffbeb'
+}
+
+function triggerFileInput(inputId){
+  // 显式触发文件选择，比 label 包裹更可靠，并清空旧值以支持重复选同一文件
+  const input=document.getElementById(inputId)
+  if(input){input.value='';input.click()}
+}
+
+function onMainFile(input){
+  const f=input.files[0];if(!f)return
+  _mainFileName=f.name
+  const lbl=document.getElementById('lbl-main')
+  const badge=document.getElementById('main-badge')
+  badge.textContent='⏳ 读取中…';document.getElementById('fn-main').style.display='block'
+  lbl.className='upzone'
+  fileToBuf(f).then(buf=>{
+    _bufs.main=buf
+    badge.textContent='✓ '+f.name
+    lbl.className='upzone has-file'
+    try{const wb=XLSX.read(new Uint8Array(buf),{type:'array',sheetRows:1});const ws=wb.Sheets[wb.SheetNames[0]];const hs=XLSX.utils.sheet_to_json(ws,{header:1})[0]||[];const ft=hs.includes('发货量')?'ORDER':'PURCHASE';showMode(ft)}catch(e){}
+    checkReady()
+  }).catch(err=>{
+    badge.textContent='✗ 读取失败，请重试'
+    badge.style.color='#b91c1c'
+    lbl.className='upzone needs-file'
+    console.error('主表读取失败:',err)
+    input.value=''
+  })
+}
+function onDailyFile(k,input){
+  const f=input.files[0];if(!f)return
+  const lbl=document.getElementById('lbl-'+k)
+  const badge=document.getElementById(k+'-badge')
+  badge.textContent='⏳ 读取中…';document.getElementById('fn-'+k).style.display='block'
+  lbl.className='upzone'
+  fileToBuf(f).then(buf=>{
+    _bufs[k]=buf
+    badge.textContent='✓ '+f.name
+    badge.style.color=''
+    lbl.className='upzone has-file'
+    input.value=''  // 清空，允许重复选同一文件
+    checkReady()
+  }).catch(err=>{
+    badge.textContent='✗ 读取失败，请重试'
+    badge.style.color='#b91c1c'
+    lbl.className='upzone needs-file'
+    document.getElementById('fn-'+k).style.display='none'
+    console.error(k+'读取失败:',err)
+    input.value=''
+  })
+}
+async function onCacheFile(k,input){
+  const f=input.files[0];if(!f)return
+  try{
+    const buf=await fileToBuf(f)
+    _bufs[k]=buf
+    await idbPut(k,{buf,meta:{name:f.name,updatedAt:Date.now()}})
+    showCached(k,{name:f.name,updatedAt:Date.now()},true)
+    checkReady()
+  }catch(err){
+    console.error(k+'缓存文件读取失败:',err)
+    const badge=document.getElementById(k+'-badge')
+    if(badge){badge.textContent='✗ 读取失败，请重试';badge.style.color='#b91c1c'}
+  }finally{
+    input.value=''  // 清空，允许重复选同一文件
+  }
+}
+
+function showMode(ft){
+  _fileType=ft
+  const el=document.getElementById('mode-indicator');el.style.display='inline-flex'
+  el.innerHTML=ft==='ORDER'?'<span class="mode-badge mode-o">📦 FBA排单</span>':'<span class="mode-badge mode-p">🛒 补货采购单</span>'
+}
+function toggleAdmin(){
+  const zone=document.getElementById('admin-zone'),icon=document.getElementById('admin-toggle-icon')
+  const open=zone.style.display==='none'
+  zone.style.display=open?'block':'none'
+  icon.style.transform=open?'rotate(180deg)':''
+}
+
+function updateAdminStatusBar(){
+  const bar=document.getElementById('admin-status-bar');if(!bar)return
+  const defs=[{k:'cat',l:'品类'},{k:'trend',l:'趋势'},{k:'restock',l:'补货记录'}]
+  bar.innerHTML=defs.map(({k,l})=>{
+    const loaded=!!_bufs[k]||(k==='restock'&&Object.keys(_restockIndex||{}).length>0)
+    return`<span style="display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:2px 7px;border-radius:4px;background:${loaded?'#ede9fe':'#fee2e2'};color:${loaded?'#7c3aed':'#b91c1c'};font-weight:500">${loaded?'✓ ':''}<span>${l}</span></span>`
+  }).join('')
+}
+
+function showCached(k,meta,isNew){
+  const lbl=document.getElementById('lbl-'+k),fn=document.getElementById('fn-'+k)
+  lbl.className='upzone cached';fn.style.display='block'
+  const badge=document.getElementById(k+'-badge')
+  badge.className='z-status z-cache';badge.textContent=isNew?'✓ 已更新并保存':'✓ 已缓存（自动加载）'
+  document.getElementById(k+'-fname').textContent=meta.name||''
+  document.getElementById(k+'-date').textContent='更新：'+fmtDate(meta.updatedAt)
+  // Blue zone files get blue tint, purple zone get purple tint
+  if(['ad','monthly'].includes(k)){lbl.style.borderColor='#60a5fa';lbl.style.background='#eff6ff'}
+  else{lbl.style.borderColor='#a78bfa';lbl.style.background='#f5f3ff'}
+  updateAdminStatusBar()
+}
+
+
+// ─── AI 驱动模式 ────────────────────────────────────────────
+function toggleAiMode(){
+  _aiMode=!_aiMode
+  const btn=document.getElementById('ai-mode-btn')
+  if(_aiMode){
+    btn.textContent='🤖 AI驱动模式（逻辑文本生效）'
+    btn.style.background='#dbeafe';btn.style.color='#1e40af';btn.style.borderColor='#93c5fd'
+    alert('🤖 AI驱动模式已开启\n\n管理员修改的逻辑文本将直接驱动审核计算。\n每批5个SKU调用AI，速度较慢，请耐心等待。\n\n逻辑文本中任何文字修改都会立即影响审核结果。')
+  }else{
+    btn.textContent='⚡ 标准模式'
+    btn.style.background='#f1f5f9';btn.style.color='#64748b';btn.style.borderColor='#e2e8f0'
+  }
+}
+
+function buildLogicPrompt(){
+  return _logicSections.map(s=>`## ${s.title}\n${s.text}`).join('\n\n')
+}
+
+function buildSkuPayload(row,cfg,trendMap,catMap){
+  const{M,YEAR,REMAIN_M,SEVEN_DAYS,SOLD_COL,QTY_COL,SKU_COL}=cfg
+  const sku=safeStr(row[SKU_COL]).trim()
+  const cat=safeStr(row['名称'])||getCatFromSku(sku)
+  const qty=safeNum(row[QTY_COL])
+  const inv=safeNum(row['可用库存']),loc=safeNum(row['本地可用'])
+  const gp=parsePct(row['订单毛利率']),ms=safeNum(row[SOLD_COL])
+  const v7=SEVEN_DAYS.map(c=>safeNum(row[c])||0)
+  const dout=v7.filter(v=>v>0).length
+  const monthly2025={}
+  for(let m=1;m<=12;m++)monthly2025[m]=getMonthlyVal(row,2025,m)
+  const{c43,c54}=getCoeff(cat,catMap,trendMap)
+  const dy=safeStr(row['打样编号']||'')
+  const restock=restockLookup(sku)
+  const daysAgo=restock?Math.floor((Date.now()-restock.dateTs)/86400000):null
+  return{
+    sku,cat,qty,margin_pct:gp,fba_inventory:Math.round(inv),local_inventory:Math.round(loc),
+    m_sold:Math.round(ms),remain_days:REMAIN_M,elapsed_days:cfg.ELAPSED||0,
+    seven_day_sales:v7,days_with_sales:dout,
+    this_year_m_minus1:Math.round(getMonthlyVal(row,YEAR,M-1)),
+    last_year_m_minus1:Math.round(monthly2025[M-1]||0),
+    last_year_m:Math.round(monthly2025[M]||0),
+    last_year_m_plus1:Math.round(monthly2025[M+1]||0),
+    monthly_2025:monthly2025,
+    trend_coeff_m:c43,trend_coeff_m1:c54,
+    is_order:cfg.fileType==='ORDER',
+    is_dy_sample:dy.startsWith('DY'),
+    restock:daysAgo!==null?{days_ago:daysAgo,qty:restock.qty,reason:restock.reason.slice(0,80)}:null
+  }
+}
+
+async function auditBatchAI(payloads,logicText,M,fileType){
+  const typeDesc=fileType==='ORDER'?'FBA排单':'采购补货'
+  const system=`你是亚马逊${typeDesc}审核专家，M月=${M}月，M+1月=${M+1}月。
+请严格按照以下审核规则对SKU进行预估和审核：
+
+${logicText}
+
+数据字段说明：
+- seven_day_sales: 近7天每日销量数组（共7个值）
+- m_sold: M月已售数量，remain_days: M月剩余天数
+- fba_inventory: FBA可用库存，local_inventory: 本地可用库存（排单时不扣减）
+- this_year_m_minus1: 今年(M-1)月销量
+- last_year_m_minus1/m/m_plus1: 去年(M-1)月/(M)月/(M+1)月销量
+- trend_coeff_m: 品类B方法M月系数，trend_coeff_m1: (M+1)月系数（null=使用聚合系数）
+- is_order=true时为排单，needQty=预估汇总-m_sold-fba_inventory（不减local）
+- is_order=false时为补货，needQty=预估汇总-m_sold-fba_inventory-local_inventory
+- is_dy_sample=true时直接通过，不做预估
+- restock: 补货记录{days_ago天前,qty数量}，null=无记录
+
+返回严格JSON数组，每个SKU一个对象，字段：
+predM(M月预估整数,无法预估时null), predN(M+1月预估整数), predSum(合计), needQty(需补/排单量整数),
+audit(审核结论，中文，含标签如【审核通过】【审核建议补量】【排单通过】等，含阶段/毛利/预估/需补量/计划量),
+color(GREEN/YELLOW/RED/BLUE/ORANGE),
+stage(SKU阶段：老品/常青产品/新品（近期有销量）/近期无动销/打样新品/全字段无数据),
+dout(7天出单天数整数),
+explanation(预估依据说明，含方法选择和计算过程)`
+
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:4000,
+      system,
+      messages:[{role:'user',content:`对以下${payloads.length}个SKU进行审核，只返回JSON数组：\n${JSON.stringify(payloads)}`}]
+    })
+  })
+  const data=await resp.json()
+  if(data.error)throw new Error('API错误: '+data.error.message)
+  const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('')
+  const match=text.match(/\[[\s\S]*\]/)
+  if(!match)throw new Error('AI返回格式无法解析: '+text.slice(0,200))
+  return JSON.parse(match[0])
+}
+
+async function doRun(){
+  const btn=document.getElementById('run-btn');btn.disabled=true;btn.textContent='⏳ 处理中...'
+  document.getElementById('err-msg').style.display='none'
+  setProgress(0)
+  try{
+    setProgress(10)
+    // Parse all data
+    const s7data=parse7DayBuf(_bufs.s7)
+    if(!s7data)throw new Error('7天销量文件格式有误，请检查是否包含「时间」「SKU」「店铺」「销量」列')
+    setProgress(20)
+    const adIdx=parseAdBuf(_bufs.ad);setProgress(30)
+    const mlyData=parseMonthlyBuf(_bufs.monthly);setProgress(40)
+    const catMap=parseCatBuf(_bufs.cat);setProgress(50)
+    const trendMap=parseTrendBuf(_bufs.trend);setProgress(55)
+    
+    // Parse main table
+    const mainWb=XLSX.read(new Uint8Array(_bufs.main),{type:'array',cellDates:false})
+    const mainRows=XLSX.utils.sheet_to_json(mainWb.Sheets[mainWb.SheetNames[0]],{defval:null,raw:true})
+    if(!mainRows.length)throw new Error('主表为空，请检查文件内容')
+    
+    const headers=Object.keys(mainRows[0])
+    const ft=headers.includes('发货量')?'ORDER':'PURCHASE';_fileType=ft;showMode(ft)
+    const mode=detectMainTableMode(headers)
+    setProgress(60)
+    
+    // Build master rows (RAW mode = match from source files; DIRECT = use as-is)
+    let masterRows
+    if(mode==='RAW'){
+      masterRows=buildMasterRows(mainRows,ft,adIdx,s7data,mlyData)
+    }else{
+      masterRows=mainRows  // already formatted
+    }
+    setProgress(70)
+    
+    // Build config
+    const masterHeaders=masterRows.length?Object.keys(masterRows[0]):[]
+    const cfg=detectCfg(masterHeaders,ft,mode==='RAW'?s7data:null)
+    _cfg=cfg
+    setProgress(75)
+    
+    // Run audit
+    const auditDate=new Date()
+    let results
+    if(_aiMode){
+      // ── AI 驱动模式：逻辑文本生效 ──
+      const BATCH=5
+      results=[]
+      const logicText=buildLogicPrompt()
+      btn.textContent=`🤖 AI审核中 0/${masterRows.length}...`
+      for(let i=0;i<masterRows.length;i+=BATCH){
+        const batch=masterRows.slice(i,i+BATCH).map(row=>buildSkuPayload(row,cfg,trendMap,catMap))
+        btn.textContent=`🤖 AI审核中 ${i}/${masterRows.length}...`
+        setProgress(75+20*(i/masterRows.length))
+        const batchRes=await auditBatchAI(batch,logicText,cfg.M,ft)
+        // Normalize: ensure all fields exist
+        batchRes.forEach(r=>{
+          r.predM=r.predM??null;r.predN=r.predN??null;r.predSum=r.predSum??null
+          r.needQty=r.needQty??null;r.audit=r.audit||'【无结论】'
+          r.color=r.color||'BLUE';r.stage=r.stage||'未知';r.dout=r.dout||0
+          r.explanation=r.explanation||''
+        })
+        results.push(...batchRes)
+        // Also fill restock columns for orders
+        if(ft==='ORDER'){
+          batch.forEach((payload,bi)=>{
+            const mr=masterRows[i+bi]
+            const restock=restockLookup(payload.sku)
+            mr['补货时间']=restock?tsToDateStr(restock.dateTs):'无记录'
+            mr['补货数量']=restock?restock.qty:'无记录'
+            mr['补货原因']=restock?restock.reason:'无记录'
+          })
+        }
+      }
+    }else{
+      // ── 标准模式：JS计算，参数生效 ──
+      results=masterRows.map(row=>{
+        if(ft==='ORDER')return auditOrder(row,cfg,catMap,trendMap)
+        else return auditPurchase(row,cfg,catMap,trendMap)
+      })
+    }
+    setProgress(90)
+
+    // Auto-save purchase results → restock history
+    if(ft==='PURCHASE'){
+      const todayTs=auditDate.getTime()
+      const newRecords=masterRows.map((row,i)=>{
+        const sku=safeStr(row[cfg.SKU_COL]).trim();if(!sku||sku==='nan')return null
+        const qty=safeNum(row[cfg.QTY_COL])
+        const reason=results[i].audit||''
+        return{sku,dateTs:todayTs,qty,reason}
+      }).filter(Boolean)
+      mergeAndSaveRestock(newRecords).then(total=>{
+        console.log(`✅ 采购记录已写入补货库，共 ${total} 条有效记录`)
+      }).catch(e=>console.warn('补货记录保存失败:',e))
+    }
+    
+    // Inject results back into master rows
+    results.forEach((r,i)=>{
+      masterRows[i][cfg.PRED_M]=r.predM
+      masterRows[i][cfg.PRED_MN]=r.predN
+      masterRows[i]['预估汇总']=r.predSum
+      masterRows[i][ft==='ORDER'?'预估Sku需排单数量':'预估Sku需补货数量']=r.needQty
+      masterRows[i]['预估依据说明']=r.explanation
+      masterRows[i]['审核结果和原因']=r.audit
+      masterRows[i]['_color']=r.color
+    })
+    
+    _masterRows=masterRows;_results=results;_filter='all';_expanded=null
+    setProgress(100)
+    document.getElementById('upload-panel').style.display='none'
+    document.getElementById('results-panel').style.display='block'
+    document.getElementById('hdr-btns').style.display='flex'
+    renderStats();renderFilters();renderTable()
+  }catch(e){
+    const em=document.getElementById('err-msg');em.textContent='处理出错：'+e.message;em.style.display='block'
+    btn.disabled=false;btn.textContent='🚀 开始审核';setProgress(0)
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 9: RESULTS UI
+// ═══════════════════════════════════════════════════════════
+function renderStats(){
+  const cnt=col=>_results.filter(r=>r.color===col).length
+  const isOrder=_fileType==='ORDER'
+  const items=[{l:'合计',v:_results.length,c:'#0f172a',bg:'white'},{l:isOrder?'✅ 排单通过':'✅ 审核通过',v:cnt('GREEN'),c:'#15803d',bg:'#f0fdf4'},{l:'⚠️ 建议补量',v:cnt('YELLOW'),c:'#b45309',bg:'#fffbeb'},{l:'🚫 谨慎/暂缓',v:cnt('RED'),c:'#b91c1c',bg:'#fef2f2'},...(isOrder?[{l:'🔶 关注毛利',v:cnt('ORANGE'),c:'#c2410c',bg:'#fff7ed'}]:[]),{l:isOrder?'🔵 参考/新品':'🆕 新品通过',v:cnt('BLUE'),c:'#1d4ed8',bg:'#eff6ff'}]
+  document.getElementById('stats-grid').style.gridTemplateColumns=`repeat(${items.length},1fr)`
+  document.getElementById('stats-grid').innerHTML=items.map(({l,v,c,bg})=>`<div class="stat" style="background:${bg}"><div class="stat-n" style="color:${c}">${v}</div><div class="stat-l">${l}</div></div>`).join('')
+}
+
+function renderFilters(){
+  const M=_cfg?.M||4,isOrder=_fileType==='ORDER'
+  const fltrs=[{k:'all',l:'全部',bg:'#1e293b'},{k:'GREEN',l:'通过',bg:'#16a34a'},{k:'YELLOW',l:'补量',bg:'#d97706'},{k:'RED',l:'谨慎/暂缓',bg:'#dc2626'},...(isOrder?[{k:'ORANGE',l:'关注毛利',bg:'#ea580c'}]:[]),{k:'BLUE',l:isOrder?'参考/新品':'新品',bg:'#2563eb'}]
+  const cfg=`<div class="cfg-tag">${isOrder?'📦排单':'🛒补货'} · M=<b>${M}月</b> · 已过<b>${_cfg?.ELAPSED||0}</b>天 · 剩余<b>${_cfg?.REMAIN_M||0}</b>天</div>`
+  const btns=fltrs.map(({k,l,bg})=>{const on=_filter===k;return`<button class="fbtn" onclick="setFilter('${k}')" style="background:${on?bg:'#f1f5f9'};color:${on?'white':'#64748b'}">${l}</button>`}).join('')
+  const shown=_results.filter(r=>_filter==='all'||r.color===_filter).length
+  document.getElementById('filterbar').innerHTML=cfg+btns+`<div style="margin-left:auto;font-size:10px;color:#94a3b8">显示 ${shown}/${_results.length} 条 · 点击行展开详情</div>`
+}
+function setFilter(f){_filter=f;_expanded=null;renderFilters();renderTable()}
+
+function renderTable(){
+  const M=_cfg?.M||4,isOrder=_fileType==='ORDER'
+  const skuLabel=isOrder?'SKU':'编号',qtyLabel=isOrder?'发货量':'计划量',needLabel=isOrder?'需排单':'需补货'
+  document.getElementById('tbl-head').innerHTML=`<tr>${['#',skuLabel,'品类',qtyLabel,'毛利率','阶段','7天出单',M+'月预估',(M+1)+'月预估',needLabel,...(isOrder?['本地库存']:[]),'结论'].map(h=>`<th>${h}</th>`).join('')}</tr>`
+  const shown=_results.map((r,i)=>({...r,i})).filter(r=>_filter==='all'||r.color===_filter)
+  const CLR_MAP={GREEN:{bg:'#f0fdf4',bdr:'#bbf7d0',txt:'#15803d'},YELLOW:{bg:'#fffbeb',bdr:'#fde68a',txt:'#b45309'},RED:{bg:'#fef2f2',bdr:'#fecaca',txt:'#b91c1c'},BLUE:{bg:'#eff6ff',bdr:'#bfdbfe',txt:'#1d4ed8'},ORANGE:{bg:'#fff7ed',bdr:'#fed7aa',txt:'#c2410c'}}
+  document.getElementById('tbl-body').innerHTML=shown.map(r=>{
+    const mr=_masterRows[r.i],clr=CLR_MAP[r.color],ex=_expanded===r.i
+    const sku=isOrder?safeStr(mr['SKU']):safeStr(mr['编号'])
+    const cat=safeStr(mr['名称']||mr['品类']||'—')
+    const fc=runForecast(mr,_cfg,{},{coeffs:{},aggM:1.5,aggN:1.1})
+    const gp=fc.gp,qty=fc.qty,loc=fc.loc,needQty=r.needQty
+    const gpc=gp<0?'#b91c1c':gp>25?'#15803d':'#0f172a'
+    const nqc=needQty!==null&&needQty>0?'#d97706':needQty!==null?'#15803d':'#94a3b8'
+    const nqs=needQty!==null?(needQty>0?'+'+needQty:needQty):'—'
+    let html=`<tr onclick="toggleRow(${r.i})" style="background:${ex?clr.bg:''}">
+      <td style="color:#94a3b8;font-size:10px">${r.i+1}</td>
+      <td style="font-family:monospace;font-size:10px;font-weight:600">${sku||'—'}</td>
+      <td style="font-size:11px;white-space:nowrap;max-width:70px;overflow:hidden;text-overflow:ellipsis" title="${escHtml(cat)}">${escHtml(cat)}</td>
+      <td style="text-align:right;font-weight:600">${qty.toFixed(0)}</td>
+      <td style="text-align:right;color:${gpc}">${gp.toFixed(1)}%</td>
+      <td style="font-size:10px;color:#64748b;white-space:nowrap">${r.stage}</td>
+      <td style="text-align:center">${r.dout}天</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${r.predM??'—'}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${r.predN??'—'}</td>
+      <td style="text-align:right;font-weight:600;color:${nqc}">${nqs}</td>
+      ${isOrder?`<td style="text-align:right;color:${loc>0?'#15803d':'#94a3b8'}">${loc}</td>`:''}
+      <td><span class="badge ${TAG_CLS[r.color]||'tag-b'}">${getTag(r.audit)}</span></td>
+    </tr>`
+    if(ex)html+=`<tr style="background:${clr.bg}"><td colspan="${isOrder?12:11}" style="padding:11px 15px;border-bottom:1px solid ${clr.bdr}"><div class="detail-pre">${escHtml(r.explanation)}</div><div class="detail-conc" style="border-color:${clr.bdr};color:${clr.txt}">${escHtml(r.audit)}</div></td></tr>`
+    return html
+  }).join('')
+}
+function toggleRow(i){_expanded=_expanded===i?null:i;renderTable()}
+
+function doReset(){
+  _bufs.main=null;_bufs.s7=null;_results=null;_masterRows=null;_cfg=null;_fileType=null;_filter='all';_expanded=null
+  document.getElementById('upload-panel').style.display='block'
+  document.getElementById('results-panel').style.display='none'
+  document.getElementById('hdr-btns').style.display='none'
+  document.getElementById('mode-indicator').style.display='none'
+  document.getElementById('run-btn').disabled=true;document.getElementById('run-btn').textContent='🚀 开始审核'
+  document.getElementById('err-msg').style.display='none'
+  document.getElementById('fn-main').style.display='none';document.getElementById('lbl-main').className='upzone'
+  document.getElementById('fn-s7').style.display='none';document.getElementById('lbl-s7').className='upzone'
+  setProgress(0);checkReady()
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION 10: INIT - Load cached files on startup
+// ═══════════════════════════════════════════════════════════
+async function loadCaches(){
+  for(const k of['ad','monthly','cat','trend']){
+    try{
+      const stored=await idbGet(k)
+      if(stored&&stored.buf&&stored.meta){
+        _bufs[k]=stored.buf
+        showCached(k,stored.meta,false)
+      }
+    }catch(e){console.warn('Cache load failed:',k,e)}
+  }
+  // Load logic params + text
+  await loadLogicFromIDB()
+  // Load restock records
+  await loadRestockRecords()
+  updateAdminStatusBar()
+  // Show restock UI state
+  try{
+    const stored=await idbGet('restock_records')
+    if(Array.isArray(stored)&&stored.length>0){
+      const badge=document.getElementById('restock-badge')
+      badge.className='z-status z-cache';badge.textContent=`✓ 已缓存（自动加载）`
+      document.getElementById('restock-date').textContent=`共 ${stored.length} 条记录（超2个月自动清除）`
+      document.getElementById('fn-restock').style.display='block'
+      document.getElementById('lbl-restock').className='upzone cached'
+      document.getElementById('lbl-restock').style.borderColor='#f59e0b'
+      document.getElementById('lbl-restock').style.background='#fffbeb'
+    }else{
+      updateRestockCountUI(0)
+    }
+  }catch(e){}
+  checkReady()
+}
+
+openDB().then(()=>loadCaches()).catch(e=>console.warn('IDB unavailable:',e))
+</script>
+</body>
+</html>

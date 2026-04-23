@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新品成功率计算工具</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f7f7f6;--bg3:#f0eeeb;
+  --text:#1a1a18;--text2:#5a5955;--text3:#9a9894;
+  --border:#e8e6e1;--border2:#d0cec8;
+  --blue:#185fa5;--blue-bg:#e6f1fb;--blue-text:#0c447c;
+  --green:#2e7d32;--green-bg:#eaf3de;--green-light:#c8e6c9;
+  --amber:#ba7517;--amber-bg:#faeeda;
+  --red:#a32d2d;--red-bg:#fcebeb;
+  --R:8px;--RL:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+  --text:#f0eeeb;--text2:#a09e98;--text3:#666;
+  --border:#333330;--border2:#444440;
+  --blue:#4a9de0;--blue-bg:#0c2d4d;--blue-text:#85b7eb;
+  --green:#5a9e5e;--green-bg:#1a3d1c;--green-light:#1a3d1c;
+  --amber:#d4973a;--amber-bg:#3d2a0c;
+  --red:#d47070;--red-bg:#3d1a1a;
+}}
+body{font-family:'PingFang SC','Microsoft YaHei',system-ui,sans-serif;font-size:14px;color:var(--text);background:var(--bg)}
+.app{padding:20px;max-width:1340px;margin:0 auto}
+/* ─ header ─ */
+.hd{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.hd-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hd-title{font-size:17px;font-weight:600}
+.hd-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.hd-right{display:flex;align-items:center;gap:10px;position:relative;flex-shrink:0}
+/* ─ badges ─ */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:500}
+.b-month{background:var(--blue-bg);color:var(--blue-text)}
+.b-match{background:var(--green-bg);color:var(--green);font-size:11px}
+.b-admin{background:var(--amber-bg);color:var(--amber)}
+.b-viewer{background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+/* ─ role popup ─ */
+.role-btn{padding:5px 14px;border:1px solid var(--border2);border-radius:var(--R);background:var(--bg);color:var(--text2);font-size:13px;cursor:pointer}
+.role-btn:hover{background:var(--bg2)}
+.rpop{position:absolute;top:calc(100% + 8px);right:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--RL);padding:16px;width:240px;z-index:99;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.rpop h4{font-size:13px;font-weight:600;margin-bottom:10px}
+.pw-inp{width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--R);font-size:13px;background:var(--bg);color:var(--text);margin-bottom:8px;outline:none}
+.pw-inp:focus{border-color:var(--blue)}
+.pw-acts{display:flex;gap:8px;justify-content:flex-end}
+.bsm{padding:5px 14px;border-radius:var(--R);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text2)}
+.bsm:hover{background:var(--bg2)}
+.bsm-p{background:var(--blue);color:#fff;border-color:var(--blue)}
+.bsm-p:hover{opacity:.9}
+.pw-err{font-size:12px;color:var(--red);margin-bottom:8px;display:none}
+.pw-hint{font-size:11px;color:var(--text3);margin-top:8px}
+/* ─ layout ─ */
+.layout{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+/* ─ sidebar ─ */
+.slabel{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.uzone{border:1px dashed var(--border2);border-radius:var(--RL);padding:14px;cursor:pointer;margin-bottom:10px;transition:all .15s}
+.uzone:hover{border-color:var(--blue);background:var(--blue-bg)}
+.uzone.active{border-color:var(--blue);border-style:solid;background:var(--blue-bg)}
+.uz-lbl{font-size:11px;color:var(--text3);margin-bottom:3px}
+.uz-name{font-size:13px;font-weight:500;color:var(--text2)}
+.uz-name.done{color:var(--blue-text)}
+.uz-hint{font-size:11px;color:var(--text3);margin-top:2px}
+.uz-meta{font-size:11px;color:var(--green);margin-top:4px;display:none}
+.sbox{background:var(--bg2);border-radius:var(--RL);padding:14px;margin-top:12px}
+.srow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.srow:last-child{margin-bottom:0}
+.sname{font-size:13px;color:var(--text)}
+.sval{font-size:13px;font-weight:500;color:var(--text)}
+.ti{width:56px;padding:4px 8px;border:1px solid var(--border2);border-radius:6px;font-size:13px;text-align:center;background:var(--bg);color:var(--text);outline:none}
+.ti:focus{border-color:var(--blue)}
+.snote{font-size:11px;color:var(--amber);margin-top:6px;display:none}
+.cbtn{width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:var(--R);font-size:14px;font-weight:500;cursor:pointer;margin-top:12px}
+.cbtn:hover{opacity:.9}
+.cbtn:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed}
+/* ─ logic panel ─ */
+.lpanel{margin-top:16px}
+.ltoggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0;border-top:1px solid var(--border)}
+.ltoggle-lbl{font-size:13px;font-weight:500;color:var(--text2)}
+.lbody{padding-top:10px}
+/* Logic tabs */
+.logic-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--R);overflow:hidden;margin-bottom:12px}
+.ltab{padding:6px 14px;font-size:12px;border:none;background:transparent;cursor:pointer;color:var(--text2);border-right:1px solid var(--border)}
+.ltab:last-child{border-right:none}
+.ltab.on{background:var(--blue);color:#fff}
+.ltab:hover:not(.on){background:var(--bg2)}
+/* Logic steps */
+.lstep{margin-bottom:12px}
+.lstep-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lstep-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lstep-title{font-size:13px;font-weight:600;color:var(--text)}
+.lstep-body{padding-left:30px;font-size:12px;color:var(--text2);line-height:1.7}
+.lstep-body strong{color:var(--text);font-weight:500}
+.code-pill{display:inline-block;background:var(--bg3);color:var(--text2);padding:1px 6px;border-radius:4px;font-family:'SF Mono','Consolas',monospace;font-size:11px;border:1px solid var(--border)}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-us{background:var(--blue-bg);color:var(--blue-text)}
+.tag-ca{background:var(--green-bg);color:var(--green)}
+.tag-ok{background:var(--green-bg);color:var(--green)}
+.formula-box{background:var(--bg3);border-radius:var(--R);padding:10px 12px;margin-top:6px;font-size:12px;border-left:3px solid var(--blue)}
+/* Admin note */
+.anote{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--R);font-size:12px;color:var(--text);background:var(--bg);resize:vertical;min-height:56px;font-family:inherit;line-height:1.5;outline:none}
+.anote:focus{border-color:var(--blue)}
+/* ─ status ─ */
+.stbox{margin-top:8px}
+.stmsg{font-size:13px;text-align:center;color:var(--text2)}
+.errmsg{font-size:12px;color:var(--red);background:var(--red-bg);padding:8px 10px;border-radius:var(--R)}
+/* ─ main ─ */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:380px;border:1px dashed var(--border2);border-radius:var(--RL);gap:8px;color:var(--text3)}
+/* Stats */
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.scard{background:var(--bg2);border-radius:var(--R);padding:14px}
+.slbl2{font-size:12px;color:var(--text2);margin-bottom:6px}
+.snum{font-size:22px;font-weight:600;color:var(--text)}
+.snum.bl{color:var(--blue)}
+/* Match info bar */
+.minfo{background:var(--green-bg);border-radius:var(--R);padding:9px 14px;margin-bottom:16px;font-size:12px;color:var(--green);display:flex;flex-wrap:wrap;gap:14px;line-height:1.8}
+/* Validation box */
+.valbox{background:var(--bg2);border-radius:var(--R);padding:10px 14px;margin-bottom:16px;font-size:12px}
+.valbox-title{font-weight:600;font-size:12px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.val-item{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:12px;color:var(--text2)}
+.val-ok{color:var(--green)}
+.val-warn{color:var(--amber)}
+/* Tables */
+.tsec{margin-bottom:20px}
+.thd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ttitle{font-size:15px;font-weight:600}
+.twrap{border:1px solid var(--border);border-radius:var(--RL);overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg2);padding:9px 14px;text-align:left;font-weight:500;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg2)}
+.tr-tot td{font-weight:600;background:var(--bg2)}
+.tr-sub td{font-weight:500;font-size:12px;background:var(--blue-bg);color:var(--blue-text)}
+.mono{font-family:'SF Mono','Consolas',monospace;font-size:12px}
+.rc{display:flex;align-items:center;gap:8px}
+.btrack{height:4px;background:var(--border);border-radius:2px;flex:1;min-width:60px}
+.bfill{height:4px;border-radius:2px;background:var(--blue)}
+.rpct{font-size:13px;font-weight:500;min-width:54px;text-align:right}
+.rhi{color:var(--green)}
+.rmd{color:var(--blue)}
+.rlo{color:var(--red)}
+/* Export */
+.xbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid var(--border);margin-top:4px}
+.xname{font-size:13px;color:var(--text2)}
+.xbtn{padding:8px 22px;background:var(--blue);color:#fff;border:none;border-radius:var(--R);font-size:13px;font-weight:500;cursor:pointer}
+.xbtn:hover{opacity:.9}
+/* ─ data download guide ─ */
+.guide-box{background:var(--bg2);border-radius:var(--RL);overflow:hidden;margin-bottom:14px}
+.guide-hd{background:var(--blue);padding:9px 14px;display:flex;align-items:center;gap:8px}
+.guide-hd-title{font-size:13px;font-weight:600;color:#fff}
+.guide-month-row{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.guide-month-label{font-size:12px;color:var(--text2);white-space:nowrap}
+.guide-sel{padding:4px 8px;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:500;background:var(--bg);color:var(--text);cursor:pointer;outline:none}
+.guide-sel:focus{border-color:var(--blue)}
+.guide-title-text{font-size:13px;font-weight:600;color:var(--text2);margin-left:auto;white-space:nowrap}
+.guide-rows{padding:10px 14px;display:flex;flex-direction:column;gap:10px}
+.guide-row{display:flex;gap:10px;align-items:flex-start}
+.guide-num{width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.guide-num-l{background:var(--blue-bg);color:var(--blue-text)}
+.guide-num-s{background:var(--green-bg);color:var(--green)}
+.guide-content{flex:1}
+.guide-row-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.guide-range{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.guide-date{font-size:13px;font-weight:600;font-family:'SF Mono','Consolas',monospace;color:var(--blue-text);background:var(--blue-bg);padding:2px 8px;border-radius:4px}
+.guide-date-s{color:var(--green);background:var(--green-bg)}
+.guide-arrow{color:var(--text3);font-size:13px}
+.guide-note{font-size:11px;color:var(--text3);margin-top:3px}
+.dimbox{background:var(--bg);border:1px solid var(--border2);border-radius:var(--RL);overflow:hidden;margin-bottom:20px}
+.dimbox-hd{background:var(--bg3);padding:10px 16px;display:flex;align-items:center;gap:8px}
+.dimbox-hd-title{font-size:13px;font-weight:600;color:var(--text2)}
+.dimbox-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.dimcol{padding:14px 16px}
+.dimcol:first-child{border-right:1px solid var(--border)}
+.dimcol-lbl{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.dimcol-main{font-size:15px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:4px}
+.dimcol-main .accent{color:var(--blue)}
+.dimcol-sub{font-size:12px;color:var(--text2);line-height:1.6}
+.dimcol-sub b{color:var(--text);font-weight:500}
+.dim-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:500;margin-top:6px}
+.dim-tag-listing{background:var(--blue-bg);color:var(--blue-text)}
+.dim-tag-sales{background:var(--green-bg);color:var(--green)}
+.dim-arrow{color:var(--border2);font-size:14px;margin:0 4px}
+.dim-pending{color:var(--text3);font-size:13px;font-style:italic}
+/* ─ month selector ─ */
+.msel-box{background:var(--bg2);border-radius:var(--RL);padding:14px;margin-top:10px;border:2px solid var(--blue)}
+.msel-lbl{font-size:11px;font-weight:600;color:var(--blue-text);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.msel-lbl::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;animation:msel-pulse 1.5s ease-in-out infinite}
+@keyframes msel-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.mchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.mchip{padding:5px 14px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg);color:var(--text2);transition:all .12s;font-family:'SF Mono','Consolas',monospace;user-select:none}
+.mchip:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.mchip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.msel-hint{font-size:11px;color:var(--text2);line-height:1.6}
+.msel-single{font-size:12px;color:var(--green);padding:3px 0}
+.msel-changed{font-size:11px;color:var(--amber);margin-top:4px;display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hd">
+    <div class="hd-left">
+      <div>
+        <div class="hd-title">新品成功率计算工具</div>
+        <div class="hd-sub">上传 listing 表 + 销量表 → 自动识别月份与匹配方式 → 生成绩效报表</div>
+      </div>
+      <span class="badge b-month" id="month-badge" style="display:none"></span>
+      <span class="badge b-match" id="match-badge" style="display:none"></span>
+    </div>
+    <div class="hd-right">
+      <span class="badge" id="role-badge">查看者</span>
+      <button class="role-btn" onclick="togglePop()">切换角色</button>
+      <div class="rpop" id="rpop" style="display:none">
+        <h4 id="ptitle">管理员登录</h4>
+        <input type="password" class="pw-inp" id="pwi" placeholder="请输入管理员密码" onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="pw-err" id="pwerr">密码错误，请重试</div>
+        <div class="pw-acts">
+          <button class="bsm" onclick="closePop()">取消</button>
+          <button class="bsm bsm-p" id="pcbtn" onclick="doLogin()">登录</button>
+        </div>
+        <div class="pw-hint" id="pwhint">默认密码：admin2024</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- ═ SIDEBAR ═ -->
+    <div>
+      <div class="slabel">数据上传</div>
+      <div class="uzone" id="lzone" onclick="$('li').click()">
+        <div class="uz-lbl">① listing 新品数据表</div>
+        <div class="uz-name" id="lname">点击上传 .xlsx 文件</div>
+        <div class="uz-hint">含开售时间的 listing 原表</div>
+        <div class="uz-meta" id="lmeta"></div>
+      </div>
+      <input type="file" id="li" accept=".xlsx,.xls" style="display:none" onchange="handleL(this)">
+
+      <div class="uzone" id="szone" onclick="$('si').click()">
+        <div class="uz-lbl">② 销量统计数据表</div>
+        <div class="uz-name" id="sname">点击上传 .xlsx 文件</div>
+        <div class="uz-hint">月份从文件名自动识别</div>
+        <div class="uz-meta" id="smeta"></div>
+      </div>
+      <input type="file" id="si" accept=".xlsx,.xls" style="display:none" onchange="handleS(this)">
+
+      <!-- ── Month selector (shown when sales file has date columns) ── -->
+      <div class="msel-box" id="msel-box" style="display:none">
+        <div class="msel-lbl">请选择计算月份</div>
+        <div class="mchips" id="mchips"></div>
+        <div class="msel-hint" id="msel-hint"></div>
+        <div class="msel-changed" id="msel-changed">月份已更改，请重新点击计算</div>
+      </div>
+      <div id="sedit" style="display:none">
+        <div class="sbox">
+          <div class="slabel" style="margin-bottom:10px">成功标准设置</div>
+          <div class="srow"><span class="sname">US站 成功门槛</span>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" class="ti" id="ust" value="30" min="1" onchange="onTC()"> 单
+            </div></div>
+          <div class="srow"><span class="sname">CA站 成功门槛</span>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="number" class="ti" id="cat" value="20" min="1" onchange="onTC()"> 单
+            </div></div>
+          <div class="snote" id="snote">已修改，请重新点击计算</div>
+        </div>
+      </div>
+      <div id="sview">
+        <div class="sbox">
+          <div class="slabel" style="margin-bottom:10px">成功标准</div>
+          <div class="srow"><span class="sname">US站点</span><span class="sval" id="usv">≥ 30 单</span></div>
+          <div class="srow"><span class="sname">CA站点</span><span class="sval" id="cav">≥ 20 单</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">其他站点不纳入计算</div>
+        </div>
+      </div>
+
+      <button class="cbtn" id="cbtn" onclick="processData()" disabled>计算新品成功率</button>
+      <div class="stbox" id="stbox"></div>
+
+      <!-- ═ LOGIC PANEL ═ -->
+      <div class="lpanel">
+        <div class="ltoggle" onclick="toggleLogic()">
+          <span class="ltoggle-lbl">计算逻辑 &amp; 维度说明</span>
+          <span id="licon">▾</span>
+        </div>
+        <div class="lbody" id="lbody">
+
+          <!-- ══ DATA DOWNLOAD GUIDE ══ -->
+          <div class="guide-box">
+            <div class="guide-hd">
+              <span class="guide-hd-title">需要下载的数据维度</span>
+            </div>
+            <div class="guide-month-row">
+              <span class="guide-month-label">计算</span>
+              <select class="guide-sel" id="g-year" onchange="updateGuide()"></select>
+              <span class="guide-month-label">年</span>
+              <select class="guide-sel" id="g-month" onchange="updateGuide()">
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+              </select>
+              <span class="guide-month-label">月</span>
+              <span class="guide-month-label">新品成功率</span>
+            </div>
+            <div class="guide-rows">
+              <div class="guide-row">
+                <span class="guide-num guide-num-l">①</span>
+                <div class="guide-content">
+                  <div class="guide-row-title">新品数据（listing 表）&nbsp;——&nbsp;下载开售时间为以下区间的新品</div>
+                  <div class="guide-range">
+                    <span class="guide-date" id="g-l-start">—</span>
+                    <span class="guide-arrow">→</span>
+                    <span class="guide-date" id="g-l-end">—</span>
+                    <span style="font-size:12px;color:var(--text2);font-weight:500" id="g-l-span"></span>
+                  </div>
+                  <div class="guide-note" id="g-l-note"></div>
+                </div>
+              </div>
+              <div class="guide-row">
+                <span class="guide-num guide-num-s">②</span>
+                <div class="guide-content">
+                  <div class="guide-row-title">销量数据（销量统计表）&nbsp;——&nbsp;下载以下月份的销售数据</div>
+                  <div class="guide-range">
+                    <span class="guide-date guide-date-s" id="g-s-period">—</span>
+                  </div>
+                  <div class="guide-note" id="g-s-note"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="logic-tabs">
+            <button class="ltab on" onclick="showTab(0,this)">计算步骤</button>
+            <button class="ltab" onclick="showTab(1,this)">店铺格式</button>
+            <button class="ltab" onclick="showTab(2,this)">成功标准</button>
+            <button class="ltab" onclick="showTab(3,this)">公式说明</button>
+          </div>
+
+          <!-- Tab 0: 计算步骤 -->
+          <div id="tab0">
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">1</span><span class="lstep-title">准备数据</span></div>
+              <div class="lstep-body">上传 <strong>listing 表</strong>（含开售时间的新品清单）和<strong>销量表</strong>（当月销量汇总数据）。工具自动从销量表文件名中识别统计月份，如 <span class="code-pill">2026-01-01_2026-01-31</span> → <strong>1月</strong>。</div>
+            </div>
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">2</span><span class="lstep-title">筛选有效新品</span></div>
+              <div class="lstep-body">仅保留店铺以 <span class="code-pill">-US</span> 或 <span class="code-pill">-CA</span> 结尾的行，其他站点（如 UK）<strong>不纳入统计</strong>。</div>
+            </div>
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">3</span><span class="lstep-title">匹配月销量</span></div>
+              <div class="lstep-body">通过 <strong>SKU + 店铺</strong> 关联两个表（若销量表有 MSKU 列则优先 MSKU 匹配），得到每个新品当月的销量。无法匹配的记为 <strong>0 单</strong>。</div>
+            </div>
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">4</span><span class="lstep-title">判定是否成功</span></div>
+              <div class="lstep-body">
+                <span class="tag tag-us">US 站</span> 月销量 ≥ <span id="lus">30</span> 单 → 成功&nbsp;&nbsp;
+                <span class="tag tag-ca">CA 站</span> 月销量 ≥ <span id="lca">20</span> 单 → 成功
+              </div>
+            </div>
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">5</span><span class="lstep-title">按运营聚合</span></div>
+              <div class="lstep-body">将店铺名去掉站点后缀得到<strong>运营店铺</strong>（如 <span class="code-pill">SZ-2-V-谭景芝</span>），同一运营的 US 和 CA 新品合并统计。</div>
+            </div>
+            <div class="lstep">
+              <div class="lstep-hd"><span class="lstep-num">6</span><span class="lstep-title">计算各层级成功率</span></div>
+              <div class="lstep-body">分别汇总运营级别和小组级别的新品总数与成功数，计算成功率百分比。</div>
+            </div>
+          </div>
+
+          <!-- Tab 1: 店铺格式 -->
+          <div id="tab1" style="display:none">
+            <div class="lstep-body" style="padding-left:0">
+              <div style="font-weight:600;color:var(--text);margin-bottom:8px;font-size:13px">店铺字段格式解析</div>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+                <span class="code-pill" style="font-size:13px;padding:3px 10px">SZ - 2 - V - 谭景芝 - US</span>
+              </div>
+              <table style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:var(--R);overflow:hidden;border-collapse:collapse">
+                <tr><th style="background:var(--bg2);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border)">字段</th><th style="background:var(--bg2);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border)">含义</th><th style="background:var(--bg2);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border)">说明</th></tr>
+                <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="code-pill">SZ/CS</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">地区</td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">SZ=深圳，CS=长沙</td></tr>
+                <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="code-pill">2</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">小组编号</td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">用于分组统计</td></tr>
+                <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="code-pill">V</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">店铺简称</td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">店铺标识符</td></tr>
+                <tr><td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="code-pill">谭景芝</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">运营姓名</td><td style="padding:7px 10px;border-bottom:1px solid var(--border)">运营负责人</td></tr>
+                <tr><td style="padding:7px 10px"><span class="code-pill">US/CA</span></td><td style="padding:7px 10px">站点</td><td style="padding:7px 10px">US=美国，CA=加拿大</td></tr>
+              </table>
+              <div style="margin-top:10px;font-size:12px;color:var(--text2)">
+                <strong style="color:var(--text)">运营店铺</strong> = 去掉站点后缀，如 <span class="code-pill">SZ-2-V-谭景芝</span>。同一运营负责多个站点的新品（US + CA）会合并计算成功率。
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: 成功标准 -->
+          <div id="tab2" style="display:none">
+            <div class="lstep-body" style="padding-left:0">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                <div style="background:var(--blue-bg);border-radius:var(--R);padding:12px;text-align:center">
+                  <div style="font-size:11px;color:var(--blue-text);font-weight:600;margin-bottom:4px">US 站点</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--blue-text)">≥ <span id="lus2">30</span> 单</div>
+                  <div style="font-size:11px;color:var(--blue-text);margin-top:4px">月销量达标即为成功新品</div>
+                </div>
+                <div style="background:var(--green-bg);border-radius:var(--R);padding:12px;text-align:center">
+                  <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px">CA 站点</div>
+                  <div style="font-size:20px;font-weight:700;color:var(--green)">≥ <span id="lca2">20</span> 单</div>
+                  <div style="font-size:11px;color:var(--green);margin-top:4px">月销量达标即为成功新品</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text2);background:var(--bg2);padding:10px;border-radius:var(--R)">
+                <strong style="color:var(--text)">注意：</strong> CA 站点成功门槛低于 US，因为 CA 市场体量相对较小。其他站点（如 UK、DE 等）<strong>不纳入</strong>新品成功率统计。
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: 公式说明 -->
+          <div id="tab3" style="display:none">
+            <div class="lstep-body" style="padding-left:0">
+              <div style="font-weight:600;color:var(--text);font-size:13px;margin-bottom:8px">运营新品成功率</div>
+              <div class="formula-box">该运营 US+CA 成功新品数 ÷ 该运营 US+CA 新品总数 × 100%</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:6px;margin-bottom:12px">例：谭景芝负责 US 店 30 个新品 + CA 店 5 个新品 = 总计 35 个；其中 US 成功 2 个 + CA 成功 1 个 = 成功 3 个；成功率 = 3 ÷ 35 ≈ 8.57%</div>
+              <div style="font-weight:600;color:var(--text);font-size:13px;margin-bottom:8px">小组新品成功率</div>
+              <div class="formula-box">该组所有运营 US+CA 成功新品数之和 ÷ 该组所有运营 US+CA 新品总数之和 × 100%</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:6px;margin-bottom:12px">例：第2组共有运营 A、B、C……合计 402 个新品，其中 18 个成功；成功率 = 18 ÷ 402 ≈ 4.48%</div>
+              <div style="font-weight:600;color:var(--text);font-size:13px;margin-bottom:8px">总体新品成功率</div>
+              <div class="formula-box">全部小组 US+CA 成功新品总数 ÷ 全部小组 US+CA 新品总数 × 100%</div>
+            </div>
+          </div>
+
+          <div id="anotewrap" style="display:none;margin-top:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">管理员备注（将写入导出文件）</div>
+            <textarea class="anote" id="anote" placeholder="添加补充说明..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ MAIN PANEL ═ -->
+    <div>
+      <div id="empty" class="empty">
+        <div style="font-size:40px;opacity:.25">📊</div>
+        <div>请上传两个数据表后点击计算</div>
+        <div style="font-size:12px">listing 数据表 + 销量统计表</div>
+      </div>
+
+      <!-- Dimension panel always visible once any file uploaded -->
+      <div class="dimbox" id="dimbox-top" style="display:none;margin-bottom:20px">
+        <div class="dimbox-hd">
+          <div class="dimbox-hd-title">📅 数据时间维度</div>
+          <span style="font-size:11px;color:var(--text3);margin-left:4px">— 上传文件后自动识别，请核对后再计算</span>
+        </div>
+        <div class="dimbox-body">
+          <div class="dimcol">
+            <div class="dimcol-lbl">数据表① &nbsp;listing 新品数据</div>
+            <div class="dimcol-main" id="dim-l-range"><span class="dim-pending">尚未上传</span></div>
+            <div class="dimcol-sub" id="dim-l-desc"></div>
+            <div><span class="dim-tag dim-tag-listing" id="dim-l-tag" style="display:none">新品数量来源</span></div>
+          </div>
+          <div class="dimcol">
+            <div class="dimcol-lbl">数据表② &nbsp;销量统计数据</div>
+            <div class="dimcol-main" id="dim-s-range"><span class="dim-pending">尚未上传</span></div>
+            <div class="dimcol-sub" id="dim-s-desc"></div>
+            <div><span class="dim-tag dim-tag-sales" id="dim-s-tag" style="display:none">月销量来源</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="results" style="display:none">
+        
+        <div class="sgrid">
+          <div class="scard"><div class="slbl2">统计月份</div><div class="snum bl" id="sm">—</div></div>
+          <div class="scard"><div class="slbl2">US+CA 新品总数</div><div class="snum" id="st">—</div></div>
+          <div class="scard"><div class="slbl2">成功新品数</div><div class="snum" id="ss">—</div></div>
+          <div class="scard"><div class="slbl2">总体成功率</div><div class="snum bl" id="sr">—</div></div>
+        </div>
+        <div class="minfo" id="minfo"></div>
+        <div class="valbox" id="valbox"></div>
+
+        <!-- Group table -->
+        <div class="tsec">
+          <div class="thd"><div class="ttitle">各组新品成功率</div></div>
+          <div class="twrap"><table>
+            <thead><tr><th>小组</th><th>新品总数（US+CA）</th><th>成功新品数</th><th style="min-width:180px">成功率</th></tr></thead>
+            <tbody id="gbody"></tbody>
+          </table></div>
+        </div>
+
+        <!-- Operator table -->
+        <div class="tsec">
+          <div class="thd"><div class="ttitle">各运营新品成功率</div></div>
+          <div class="twrap"><table>
+            <thead><tr><th>小组</th><th>运营店铺</th><th>新品总数</th><th>成功新品数</th><th style="min-width:180px">成功率</th></tr></thead>
+            <tbody id="obody"></tbody>
+          </table></div>
+        </div>
+
+        <div class="xbar">
+          <span class="xname" id="xname"></span>
+          <button class="xbtn" onclick="doExport()">导出 Excel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let S={role:'viewer',lRows:null,sRows:null,sFile:'',res:null,month:null,matchMode:'',sQtyCol:'销量',sFormatType:'',availMonths:[],
+  lDateMin:null,lDateMax:null,sDateMin:null,sDateMax:null,sDateSrc:'',
+  logicOpen:true,popOpen:false,logicTab:0};
+const ADMIN_PW='admin2024';
+
+// ══════════ Month detection (3-tier) ══════════
+function monthFromFilename(fname){
+  let m=fname.match(/(\d{4})-(\d{2})-\d{2}[_\-](\d{4})-(\d{2})-\d{2}/);
+  if(m)return{m:+m[4],y:+m[3],src:'销量文件名'};
+  m=fname.match(/(\d{4})[-_](\d{2})/);
+  if(m&&+m[2]>=1&&+m[2]<=12)return{m:+m[2],y:+m[1],src:'销量文件名'};
+  return null;
+}
+function monthFromRows(rows){
+  const cols=rows.length?Object.keys(rows[0]):[];
+  for(const c of cols.filter(c=>/时间|日期|date/i.test(c))){
+    const cnt={};
+    for(const r of rows){const m=String(r[c]||'').match(/(\d{4})-(\d{2})/);if(m){const k=m[1]+'-'+m[2];cnt[k]=(cnt[k]||0)+1;}}
+    const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    if(top){const[yr,mo]=top[0].split('-');return{m:+mo,y:+yr,src:'销量数据日期列'};}
+  }
+  return null;
+}
+function monthFromListing(rows){
+  const dates=[];
+  for(const r of rows){const v=r['开售时间']||r['上架时间']||'';if(!v)continue;const m=String(v).match(/(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);if(m)dates.push(new Date(+m[1],+m[2]-1,+m[3]));}
+  if(!dates.length)return null;
+  dates.sort((a,b)=>b-a);
+  return{m:dates[0].getMonth()+1,y:dates[0].getFullYear(),src:'listing开售时间末尾'};
+}
+
+// ══════════ Match mode ══════════
+function detectMode(rows){
+  if(!rows||!rows.length)return'SKU';
+  const cols=Object.keys(rows[0]);
+  if(cols.includes('MSKU')&&rows.some(r=>String(r['MSKU']||'').trim()))return'MSKU';
+  return'SKU';
+}
+
+// Detect YYYY-MM style column header (new pivot format: e.g. "2026-04")
+// Returns the LAST (most recent) such column if multiple exist
+// Also stores all matches in S.availMonths
+function detectYearMonthCol(rows){
+  if(!rows||!rows.length)return null;
+  const cols=Object.keys(rows[0]);
+  const matches=[];
+  for(const c of cols){
+    const m=String(c).trim().match(/^(\d{4})-(\d{2})$/);
+    if(m&&+m[2]>=1&&+m[2]<=12)matches.push({col:c,y:+m[1],m:+m[2]});
+  }
+  if(!matches.length)return null;
+  matches.sort((a,b)=>a.y!==b.y?a.y-b.y:a.m-b.m);
+  S.availMonths=matches;  // store all for selector
+  return matches[matches.length-1]; // default = most recent
+}
+
+// Render the month selector chips
+function renderMonthSelector(selectedCol){
+  const box=$('msel-box'), chips=$('mchips'), hint=$('msel-hint');
+  if(!S.availMonths||!S.availMonths.length){box.style.display='none';return;}
+  box.style.display='';
+  if(S.availMonths.length===1){
+    chips.innerHTML=`<div class="msel-single">✓ 已自动选取唯一月份：<strong>${S.availMonths[0].col}</strong></div>`;
+    hint.textContent='';
+    box.style.borderColor='var(--green)';
+    box.querySelector('.msel-lbl').textContent='自动识别月份';
+    box.querySelector('.msel-lbl').style.color='var(--green)';
+    box.querySelector('.msel-lbl::before') // can't target pseudo
+    return;
+  }
+  // Multiple months — show chips
+  box.style.borderColor='var(--blue)';
+  box.querySelector('.msel-lbl').textContent='请选择计算月份（手动）';
+  box.querySelector('.msel-lbl').style.color='var(--blue-text)';
+  chips.innerHTML=S.availMonths.map(({col,y,m})=>{
+    const active=col===selectedCol?'on':'';
+    return`<button class="mchip ${active}" onclick="selectMonth('${col}')">${y}年${String(m).padStart(2,'0')}月</button>`;
+  }).join('');
+  const sel=S.availMonths.find(x=>x.col===selectedCol);
+  hint.innerHTML=sel
+    ?`当前选择：<strong>${sel.y}年${sel.m}月</strong>（对应销量列 <code style="font-family:monospace;font-size:11px">${sel.col}</code>），共 ${S.availMonths.length} 个月份可选`
+    :'请点击上方月份按钮选择要计算的统计月份';
+}
+
+// Called when user clicks a month chip
+function selectMonth(col){
+  if(col===S.sQtyCol)return; // no change
+  S.sQtyCol=col;
+  const m=S.availMonths.find(x=>x.col===col);
+  if(m){
+    S.month={m:m.m,y:m.y,src:'手动选择（'+col+'）'};
+    S.sDateMin=new Date(m.y,m.m-1,1);
+    S.sDateMax=new Date(m.y,m.m,0);
+    S.sDateSrc='手动选择';
+    // Update month badge
+    $('month-badge').textContent=m.m+'月 数据（手动）';
+    $('month-badge').style.display='';
+    $('match-badge').textContent=S.matchMode+'+店铺 · '+col;
+    updateDimPanel();
+  }
+  renderMonthSelector(col);
+  updateBtn();
+  // Show "changed" reminder if results already shown
+  $('msel-changed').style.display=S.res?'':'none';
+}
+
+// Pick the right sheet for sales data: prefer "销量" sheet
+function pickSalesSheet(wb){
+  const preferred=['销量','销量数据','sales','sheet1'];
+  for(const p of preferred){
+    const sn=wb.SheetNames.find(n=>n.toLowerCase()===p.toLowerCase());
+    if(sn)return sn;
+  }
+  return wb.SheetNames[0];
+}
+
+// ══════════ File handlers ══════════
+function fmtDate(d){
+  if(!d)return'—';
+  return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseDates(rows, col){
+  const dates=[];
+  for(const r of rows){
+    const v=String(r[col]||'').trim();
+    if(!v)continue;
+    const m=v.match(/(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
+    if(m){const d=new Date(+m[1],+m[2]-1,+m[3]);if(!isNaN(d))dates.push(d);}
+  }
+  return dates;
+}
+
+function handleL(inp){
+  const f=inp.files[0];if(!f)return;
+  readX(f,wb=>{
+    const sn=wb.SheetNames.find(n=>/listing|原表|数据/i.test(n))||wb.SheetNames[0];
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{raw:false,defval:''});
+    S.lRows=rows;
+    const uc=rows.filter(r=>/(US|CA)$/.test(String(r['店铺']||''))).length;
+
+    // Extract 开售时间 date range
+    const dateCol=['开售时间','上架时间'].find(c=>rows.some(r=>r[c]));
+    const dates=dateCol?parseDates(rows,dateCol):[];
+    if(dates.length){
+      dates.sort((a,b)=>a-b);
+      S.lDateMin=dates[0]; S.lDateMax=dates[dates.length-1];
+    }
+
+    $('lzone').classList.add('active');$('lname').textContent=f.name;$('lname').className='uz-name done';
+    $('lmeta').textContent=`${rows.length} 行 · US+CA: ${uc} 条 · Sheet: ${sn}`;$('lmeta').style.display='';
+    updateDimPanel();
+    updateBtn();$('stbox').innerHTML='';
+  },e=>showErr('listing 文件解析失败: '+e));
+}
+function handleS(inp){
+  const f=inp.files[0];if(!f)return;
+  S.sFile=f.name;
+  readX(f,wb=>{
+    const sn=pickSalesSheet(wb);
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{raw:false,defval:''});
+    S.sRows=rows;
+
+    // ── Detect sales quantity column ──────────────────────────
+    // Format A: column named "销量"  (旧格式·每日明细)
+    // Format B: column named "YYYY-MM" (新格式·月度透视表)
+    // Format C: fuzzy match 销量/sales/qty  (兜底)
+    const ymCol=detectYearMonthCol(rows); // also populates S.availMonths
+    const hasSalesCol=rows.length&&'销量' in rows[0];
+    if(ymCol){
+      S.sQtyCol=ymCol.col;
+      S.sFormatType=S.availMonths.length>1
+        ?`透视表格式（${S.availMonths.length} 个月份列，默认最新: ${ymCol.col}）`
+        :`透视表格式（列名: ${ymCol.col}）`;
+    } else if(hasSalesCol){
+      S.sQtyCol='销量';
+      S.sFormatType='标准格式（列名: 销量）';
+      S.availMonths=[];
+    } else {
+      const found=rows.length?Object.keys(rows[0]).find(c=>/销量|sales|qty|quantity/i.test(c))||'销量':'销量';
+      S.sQtyCol=found;
+      S.sFormatType=`兜底匹配（列名: ${found}）`;
+      S.availMonths=[];
+    }
+
+    // ── Month detection ───────────────────────────────────────
+    // Priority 1: YYYY-MM column header (most reliable for new format)
+    if(ymCol){
+      S.month={m:ymCol.m,y:ymCol.y,src:'销量列名（'+ymCol.col+'）'};
+    } else {
+      S.month=monthFromFilename(f.name)||monthFromRows(rows)||(S.lRows?monthFromListing(S.lRows):null);
+    }
+
+    S.matchMode=detectMode(rows);
+
+    // ── Date range for dim panel ──────────────────────────────
+    const fnMatch=f.name.match(/(\d{4}-\d{2}-\d{2})[_\-](\d{4}-\d{2}-\d{2})/);
+    if(fnMatch){
+      S.sDateMin=new Date(fnMatch[1]);S.sDateMax=new Date(fnMatch[2]);S.sDateSrc='文件名';
+    } else if(ymCol){
+      // New format: date range = full calendar month
+      S.sDateMin=new Date(ymCol.y,ymCol.m-1,1);
+      S.sDateMax=new Date(ymCol.y,ymCol.m,0);
+      S.sDateSrc='列名推断（'+ymCol.col+'整月）';
+    } else {
+      const dateCols=['时间','日期','date'].filter(c=>rows.some(r=>r[c]));
+      if(dateCols.length){
+        const dates=parseDates(rows,dateCols[0]);
+        if(dates.length){dates.sort((a,b)=>a-b);S.sDateMin=dates[0];S.sDateMax=dates[dates.length-1];S.sDateSrc='数据列';}
+      } else if(S.month){
+        S.sDateMin=new Date(S.month.y,S.month.m-1,1);
+        S.sDateMax=new Date(S.month.y,S.month.m,0);
+        S.sDateSrc='月份推断';
+      }
+    }
+
+    updateDimPanel();
+    renderMonthSelector(S.sQtyCol);
+    $('szone').classList.add('active');$('sname').textContent=f.name;$('sname').className='uz-name done';
+    // Show detailed meta: sheet, format type, qty column
+    const meta=$('smeta');
+    const monthStr=S.month?`识别月份: ${S.month.y}年${S.month.m}月（${S.month.src}）`:'⚠ 无法自动识别月份';
+    meta.textContent=`${monthStr}  ·  ${S.sFormatType}`;
+    meta.style.display='';
+    if(S.month){$('month-badge').textContent=S.month.m+'月 数据';$('month-badge').style.display='';}
+    $('match-badge').textContent=S.matchMode+'+店铺 · '+S.sQtyCol;$('match-badge').style.display='';
+    updateBtn();$('stbox').innerHTML='';
+  },e=>showErr('销量文件解析失败: '+e));
+}
+
+function updateDimPanel(){
+  $('dimbox-top').style.display='';
+  // Listing side
+  if(S.lDateMin&&S.lDateMax){
+    $('dim-l-range').innerHTML=`<span class="accent">${fmtDate(S.lDateMin)}</span><span class="dim-arrow">→</span><span class="accent">${fmtDate(S.lDateMax)}</span>`;
+    const span=Math.round((S.lDateMax-S.lDateMin)/(1000*60*60*24))+1;
+    const months=Math.round(span/30*10)/10;
+    $('dim-l-desc').innerHTML=`开售时间跨度约 <b>${span} 天</b>（≈${months}个月）<br>包含该区间内开售的所有 US/CA 新品`;
+    $('dim-l-tag').style.display='inline-flex';
+  }
+  // Sales side
+  if(S.sDateMin&&S.sDateMax){
+    $('dim-s-range').innerHTML=`<span class="accent">${fmtDate(S.sDateMin)}</span><span class="dim-arrow">→</span><span class="accent">${fmtDate(S.sDateMax)}</span>`;
+    const span=Math.round((S.sDateMax-S.sDateMin)/(1000*60*60*24))+1;
+    $('dim-s-desc').innerHTML=`统计周期 <b>${span} 天</b>，来源: ${S.sDateSrc||'—'}<br>用于匹配以上新品在此期间的月销量`;
+    $('dim-s-tag').style.display='inline-flex';
+  }
+}
+function readX(file,onOk,onErr){
+  const r=new FileReader();
+  r.onload=e=>{try{onOk(XLSX.read(e.target.result,{type:'array'}));}catch(err){onErr(err.message);}};
+  r.readAsArrayBuffer(file);
+}
+
+// ══════════ Calculation ══════════
+function processData(){
+  $('stbox').innerHTML='<div class="stmsg">计算中...</div>';
+  $('msel-changed').style.display='none';
+  setTimeout(()=>{
+    try{const r=calc();S.res=r;render(r);$('stbox').innerHTML='';$('snote').style.display='none';}
+    catch(e){showErr('计算出错：'+e.message);console.error(e);}
+  },30);
+}
+function calc(){
+  const usT=+$('ust').value||30, caT=+$('cat').value||20;
+  const mode=S.matchMode||detectMode(S.sRows);
+  const qtyCol=S.sQtyCol||'销量';   // ← dynamic: "销量" or "2026-04" etc.
+  // Build sales maps
+  const mskuMap={},skuMap={};
+  for(const r of S.sRows){
+    const store=String(r['店铺']||'').trim(),qty=parseFloat(r[qtyCol])||0;
+    if(!store)continue;
+    const msku=String(r['MSKU']||'').trim(),sku=String(r['SKU']||'').trim();
+    if(msku)mskuMap[msku+'|'+store]=(mskuMap[msku+'|'+store]||0)+qty;
+    if(sku)skuMap[sku+'|'+store]=(skuMap[sku+'|'+store]||0)+qty;
+  }
+  // Process listing
+  const gMap={},oMap={};
+  let tot=0,succ=0,matched=0,noSku=0;
+  const detail=[];
+  for(const r of S.lRows){
+    const store=String(r['店铺']||'').trim();
+    if(!store)continue;
+    const sM=store.match(/-(US|CA)$/);
+    if(!sM)continue;
+    const site=sM[1];
+    const base=String(r['店铺-辅助列']||'').trim()||store.replace(/-(US|CA)$/,'');
+    const gM=store.match(/^[A-Z]+-(\d+)-/);
+    const grp=gM?gM[1]:'?';
+    const msku=String(r['MSKU']||'').trim(), sku=String(r['SKU']||'').trim();
+    // Lookup with fallback
+    let qty=0;
+    if(mode==='MSKU'){qty=msku?mskuMap[msku+'|'+store]||0:0;if(!qty&&sku)qty=skuMap[sku+'|'+store]||0;}
+    else{qty=sku?skuMap[sku+'|'+store]||0:0;if(!qty&&msku)qty=mskuMap[msku+'|'+store]||0;}
+    if(!sku)noSku++;
+    if(qty>0)matched++;
+    const ok=(site==='US'&&qty>=usT)||(site==='CA'&&qty>=caT)?1:0;
+    tot++;succ+=ok;
+    if(!gMap[grp])gMap[grp]={t:0,s:0};gMap[grp].t++;gMap[grp].s+=ok;
+    if(!oMap[base])oMap[base]={grp,t:0,s:0};oMap[base].t++;oMap[base].s+=ok;
+    detail.push({msku,sku,store,base,site,grp,qty,ok,thr:site==='US'?`≥${usT}`:`≥${caT}`});
+  }
+  const groups=Object.entries(gMap).sort((a,b)=>+a[0]-+b[0]||a[0].localeCompare(b[0])).map(([g,d])=>({g,t:d.t,s:d.s,r:d.t?d.s/d.t:0}));
+  const ops=Object.entries(oMap).sort((a,b)=>+a[1].grp-+b[1].grp||a[0].localeCompare(b[0])).map(([st,d])=>({st,grp:d.grp,t:d.t,s:d.s,r:d.t?d.s/d.t:0}));
+  return{tot,succ,rate:tot?succ/tot:0,month:S.month,groups,ops,detail,usT,caT,mode,matched,noSku};
+}
+
+// ══════════ Render ══════════
+function rbar(r){
+  const p=Math.min(r*100,100).toFixed(1),c=r>=0.15?'rhi':r>=0.08?'rmd':'rlo';
+  return`<div class="rc"><div class="btrack"><div class="bfill" style="width:${p}%"></div></div><span class="rpct ${c}">${(r*100).toFixed(2)}%</span></div>`;
+}
+function render(res){
+  $('empty').style.display='none';$('results').style.display='';
+  $('dimbox-top').style.display=''; // keep visible above results
+  $('sm').textContent=res.month?res.month.m+'月':'?';
+  $('st').textContent=res.tot;$('ss').textContent=res.succ;
+  $('sr').textContent=(res.rate*100).toFixed(2)+'%';
+  $('xname').textContent=(res.month?res.month.m:'?')+'月新品成功率-绩效计算.xlsx';
+  $('minfo').innerHTML=
+    `<span>匹配方式：<strong>${res.mode}+店铺</strong></span><span style="opacity:.4">|</span>`+
+    `<span>销量列：<strong>${S.sQtyCol}</strong></span><span style="opacity:.4">|</span>`+
+    `<span>有销量记录：<strong>${res.matched}</strong>/${res.tot}</span><span style="opacity:.4">|</span>`+
+    `<span>月份：${res.month?res.month.y+'年'+res.month.m+'月（'+res.month.src+'）':'未识别'}</span>`;
+  // Validation box
+  const warns=[];
+  if(res.noSku>0)warns.push(`<div class="val-item"><span class="val-warn">⚠</span> ${res.noSku} 条记录 SKU 为空，无法匹配销量（记为0单）</div>`);
+  $('valbox').innerHTML=`<div class="valbox-title">数据验证</div>`+
+    `<div class="val-item"><span class="val-ok">✓</span> 共 ${res.tot} 条 US+CA 新品参与计算</div>`+
+    `<div class="val-item"><span class="val-ok">✓</span> ${res.matched} 条成功匹配销量，${res.tot-res.matched} 条无销量记录（计0单）</div>`+
+    `<div class="val-item"><span class="val-ok">✓</span> 成功判定：US≥${res.usT}单，CA≥${res.caT}单，识别成功新品 ${res.succ} 个</div>`+
+    warns.join('');
+  // Group table
+  let gh='';
+  for(const g of res.groups)gh+=`<tr><td>第${g.g}组</td><td>${g.t}</td><td>${g.s}</td><td>${rbar(g.r)}</td></tr>`;
+  gh+=`<tr class="tr-tot"><td>合计</td><td>${res.tot}</td><td>${res.succ}</td><td>${rbar(res.rate)}</td></tr>`;
+  $('gbody').innerHTML=gh;
+  // Operator table
+  const byG={};for(const op of res.ops)(byG[op.grp]||(byG[op.grp]=[])).push(op);
+  let oh='';
+  for(const[grp,ops]of Object.entries(byG).sort((a,b)=>+a[0]-+b[0]||a[0].localeCompare(b[0]))){
+    for(const op of ops)oh+=`<tr><td>第${op.grp}组</td><td><span class="mono">${op.st}</span></td><td>${op.t}</td><td>${op.s}</td><td>${rbar(op.r)}</td></tr>`;
+    const gt=ops.reduce((a,o)=>a+o.t,0),gs=ops.reduce((a,o)=>a+o.s,0);
+    oh+=`<tr class="tr-sub"><td colspan="2">第${grp}组 小计</td><td>${gt}</td><td>${gs}</td><td>${rbar(gs/gt)}</td></tr>`;
+  }
+  oh+=`<tr class="tr-tot"><td colspan="2">总计</td><td>${res.tot}</td><td>${res.succ}</td><td>${rbar(res.rate)}</td></tr>`;
+  $('obody').innerHTML=oh;
+}
+
+// ══════════ Export — fully styled Excel ══════════
+function doExport(){
+  if(!S.res)return;
+  const res=S.res, ml=(res.month?res.month.m:'?')+'月', note=$('anote').value.trim();
+  const wb=XLSX.utils.book_new();
+
+  // ─── Style palette ───────────────────────────────────────────
+  const C={
+    navyBg:'1F4E79', navyFg:'FFFFFF',          // deep navy — main headers
+    blueBg:'2E75B6', blueFg:'FFFFFF',           // medium blue — section headers & col headers
+    blueLightBg:'BDD7EE', blueLightFg:'1F4E79', // pale blue — subtotal rows
+    goldBg:'FFE699',  goldFg:'7F6000',          // gold — total rows
+    greenBg:'C6EFCE', greenFg:'276221',         // green — success cells
+    grayBg:'F2F2F2',  grayFg:'404040',          // light gray — alternating rows
+    whiteBg:'FFFFFF', darkFg:'262626',          // white rows
+    amberBg:'FCE4D6', amberFg:'833C00',         // amber — warning / CA cells
+    tealBg:'DDEBF7',  tealFg:'1F4E79',          // info blue — metadata rows
+    borderColor:'9DC3E6',                       // border color (mid blue)
+    borderGray:'C0C0C0',                        // gray border for detail sheet
+  };
+
+  // Build a border helper
+  const border=(color=C.borderColor)=>({
+    top:{style:'thin',color:{rgb:color}},
+    bottom:{style:'thin',color:{rgb:color}},
+    left:{style:'thin',color:{rgb:color}},
+    right:{style:'thin',color:{rgb:color}}
+  });
+  const borderMed=(color=C.borderColor)=>({
+    top:{style:'medium',color:{rgb:color}},
+    bottom:{style:'medium',color:{rgb:color}},
+    left:{style:'medium',color:{rgb:color}},
+    right:{style:'medium',color:{rgb:color}}
+  });
+
+  // Cell factory
+  function cell(v, bg, fg, bold=false, sz=11, hAlign='center', fmt=null, wrapText=false, borderStyle=null){
+    const c={v, t: typeof v==='number'?'n':'s'};
+    if(fmt){c.z=fmt;}
+    c.s={
+      fill:{patternType:'solid',fgColor:{rgb:bg||C.whiteBg}},
+      font:{name:'Arial',sz,bold,color:{rgb:fg||C.darkFg}},
+      alignment:{horizontal:hAlign,vertical:'center',wrapText},
+      border: borderStyle||border()
+    };
+    return c;
+  }
+
+  // ─── Rate formatting helper ───────────────────────────────────
+  const pctFmt='0.00%';
+  const numFmt='#,##0';
+
+  // ──────────────────────────────────────────────────────────────
+  // SHEET 1 : 各组新品成功率
+  // ──────────────────────────────────────────────────────────────
+  const ws1Data=[];
+  const dimL=S.lDateMin?`${fmtDate(S.lDateMin)} → ${fmtDate(S.lDateMax)}`:'—';
+  const dimS=S.sDateMin?`${fmtDate(S.sDateMin)} → ${fmtDate(S.sDateMax)}`:'—';
+
+  // R0: main title (merged A:D)
+  ws1Data.push([
+    cell(`${ml} 新品成功率统计`,C.navyBg,C.navyFg,true,14,'center',null,false,borderMed()),
+    cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg)
+  ]);
+  // R1: data period
+  ws1Data.push([
+    cell('数据时间维度',C.tealBg,C.tealFg,true,10,'left'),
+    cell(`listing 开售范围：${dimL}    ·    销量统计区间：${dimS}`,C.tealBg,C.tealFg,false,10,'left',null,true),
+    cell('',C.tealBg,C.tealFg),cell('',C.tealBg,C.tealFg)
+  ]);
+  // R2: params
+  ws1Data.push([
+    cell('参数',C.tealBg,C.tealFg,true,10,'left'),
+    cell(`成功标准：US≥${res.usT}单 / CA≥${res.caT}单    匹配方式：${res.mode}+店铺    生成时间：${new Date().toLocaleString('zh-CN')}`,C.tealBg,C.tealFg,false,10,'left',null,true),
+    cell('',C.tealBg,C.tealFg),cell('',C.tealBg,C.tealFg)
+  ]);
+  // R3: blank
+  ws1Data.push([cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg)]);
+  // R4: total summary header
+  ws1Data.push([
+    cell('总体新品成功率',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.blueBg)),
+    cell('',C.blueBg,C.blueFg),cell('',C.blueBg,C.blueFg),cell('',C.blueBg,C.blueFg)
+  ]);
+  // R5: total kpi headers
+  ws1Data.push([
+    cell('US+CA 新品总数',C.blueLightBg,C.blueLightFg,true,11,'center'),
+    cell('成功新品数',C.blueLightBg,C.blueLightFg,true,11,'center'),
+    cell('总体成功率',C.blueLightBg,C.blueLightFg,true,11,'center'),
+    cell('',C.blueLightBg,C.blueLightFg)
+  ]);
+  // R6: total kpi values
+  ws1Data.push([
+    cell(res.tot,C.whiteBg,C.darkFg,true,16,'center',numFmt,false,borderMed()),
+    cell(res.succ,C.whiteBg,C.darkFg,true,16,'center',numFmt,false,borderMed()),
+    cell(res.rate,C.whiteBg,C.darkFg,true,16,'center',pctFmt,false,borderMed()),
+    cell('',C.whiteBg)
+  ]);
+  // R7: blank
+  ws1Data.push([cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg)]);
+  // R8: groups table header
+  ws1Data.push([
+    cell('小组',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('新品总数（US+CA）',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('成功新品数',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('新品成功率',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg))
+  ]);
+  // R9+: group data rows
+  res.groups.forEach((g,i)=>{
+    const bg=i%2===0?C.whiteBg:C.grayBg;
+    ws1Data.push([
+      cell(`第${g.g}组`,bg,C.darkFg,false,11,'center'),
+      cell(g.t,bg,C.darkFg,false,11,'center',numFmt),
+      cell(g.s,bg,C.darkFg,false,11,'center',numFmt),
+      cell(g.r,bg,C.darkFg,false,11,'center',pctFmt)
+    ]);
+  });
+  // Total row
+  ws1Data.push([
+    cell('合计',C.goldBg,C.goldFg,true,11,'center',null,false,borderMed()),
+    cell(res.tot,C.goldBg,C.goldFg,true,11,'center',numFmt,false,borderMed()),
+    cell(res.succ,C.goldBg,C.goldFg,true,11,'center',numFmt,false,borderMed()),
+    cell(res.rate,C.goldBg,C.goldFg,true,11,'center',pctFmt,false,borderMed())
+  ]);
+  if(note){
+    ws1Data.push([cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg),cell('',C.whiteBg)]);
+    ws1Data.push([cell('备注',C.amberBg,C.amberFg,true,10,'left'),cell(note,C.amberBg,C.amberFg,false,10,'left',null,true),cell('',C.amberBg),cell('',C.amberBg)]);
+  }
+  const ws1=XLSX.utils.aoa_to_sheet(ws1Data);
+  ws1['!cols']=[{wch:18},{wch:22},{wch:16},{wch:16}];
+  ws1['!rows']=[{hpt:28},{hpt:30},{hpt:30},{hpt:8},{hpt:22},{hpt:22},{hpt:36},{hpt:8},{hpt:22}];
+  const totalRows=ws1Data.length;
+  ws1['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:3}},
+    {s:{r:1,c:0},e:{r:1,c:3}},
+    {s:{r:2,c:0},e:{r:2,c:3}},
+    {s:{r:4,c:0},e:{r:4,c:3}},
+    ...(note?[{s:{r:totalRows-1,c:1},e:{r:totalRows-1,c:3}}]:[])
+  ];
+  XLSX.utils.book_append_sheet(wb,ws1,'各组新品成功率');
+
+  // ──────────────────────────────────────────────────────────────
+  // SHEET 2 : 各运营新品成功率
+  // ──────────────────────────────────────────────────────────────
+  const ws2Data=[];
+  // R0: title
+  ws2Data.push([
+    cell(`${ml} 各运营新品成功率`,C.navyBg,C.navyFg,true,14,'center',null,false,borderMed()),
+    cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg)
+  ]);
+  // R1: data period
+  ws2Data.push([
+    cell('数据维度',C.tealBg,C.tealFg,true,10,'left'),
+    cell(`listing：${dimL}    ·    销量：${dimS}`,C.tealBg,C.tealFg,false,10,'left',null,true),
+    cell('',C.tealBg,C.tealFg),cell('',C.tealBg,C.tealFg),cell('',C.tealBg,C.tealFg)
+  ]);
+  // R2: total summary
+  ws2Data.push([
+    cell('总体成功率',C.goldBg,C.goldFg,true,11,'center',null,false,borderMed()),
+    cell(`${res.tot} 个新品`,C.goldBg,C.goldFg,false,11,'center',null,false,borderMed()),
+    cell(`${res.succ} 个成功`,C.goldBg,C.goldFg,false,11,'center',null,false,borderMed()),
+    cell(res.rate,C.goldBg,C.goldFg,true,13,'center',pctFmt,false,borderMed()),
+    cell('',C.goldBg,C.goldFg)
+  ]);
+  // R3: column headers
+  ws2Data.push([
+    cell('小组',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('运营店铺',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('新品总数（US+CA）',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('成功新品数',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg)),
+    cell('新品成功率',C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg))
+  ]);
+  // Group colors (light tints for alternating groups)
+  const grpBgs=['EBF3FD','F0F7E6','FEF9E7','FDE9D9','F0E6F6'];
+  const grpBgsDark=['BDD7EE','C6EFCE','FFE699','FCE4D6','E2EFDA'];
+  const byG2={};for(const op of res.ops)(byG2[op.grp]||(byG2[op.grp]=[])).push(op);
+  let grpIdx=0;
+  for(const[grp,ops]of Object.entries(byG2).sort((a,b)=>+a[0]-+b[0]||a[0].localeCompare(b[0]))){
+    const gb=grpBgs[grpIdx%grpBgs.length];
+    const gbDark=grpBgsDark[grpIdx%grpBgsDark.length];
+    ops.forEach((op,i)=>{
+      const bg=i%2===0?gb:C.whiteBg;
+      ws2Data.push([
+        cell(`第${op.grp}组`,bg,C.darkFg,false,11,'center'),
+        cell(op.st,bg,C.darkFg,false,11,'left'),
+        cell(op.t,bg,C.darkFg,false,11,'center',numFmt),
+        cell(op.s,bg,op.s>0?C.greenFg:C.darkFg,op.s>0,11,'center',numFmt),
+        cell(op.r,op.r>=0.15?C.greenBg:op.r>=0.08?gb:bg,op.r>=0.15?C.greenFg:C.darkFg,op.r>=0.08,11,'center',pctFmt)
+      ]);
+    });
+    // subtotal
+    const gt=ops.reduce((a,o)=>a+o.t,0),gs=ops.reduce((a,o)=>a+o.s,0),gr=gt?gs/gt:0;
+    ws2Data.push([
+      cell(`第${grp}组 小计`,gbDark,C.navyBg,true,11,'center',null,false,borderMed()),
+      cell('',gbDark,C.navyBg,true,11),
+      cell(gt,gbDark,C.navyBg,true,11,'center',numFmt,false,borderMed()),
+      cell(gs,gbDark,C.navyBg,true,11,'center',numFmt,false,borderMed()),
+      cell(gr,gbDark,C.navyBg,true,11,'center',pctFmt,false,borderMed())
+    ]);
+    grpIdx++;
+  }
+  // Total
+  ws2Data.push([
+    cell('总计',C.goldBg,C.goldFg,true,12,'center',null,false,borderMed()),
+    cell('',C.goldBg,C.goldFg,true,12,'center',null,false,borderMed()),
+    cell(res.tot,C.goldBg,C.goldFg,true,12,'center',numFmt,false,borderMed()),
+    cell(res.succ,C.goldBg,C.goldFg,true,12,'center',numFmt,false,borderMed()),
+    cell(res.rate,C.goldBg,C.goldFg,true,12,'center',pctFmt,false,borderMed())
+  ]);
+  const ws2=XLSX.utils.aoa_to_sheet(ws2Data);
+  ws2['!cols']=[{wch:14},{wch:26},{wch:18},{wch:14},{wch:14}];
+  ws2['!rows']=[{hpt:28},{hpt:28},{hpt:24},{hpt:22}];
+  ws2['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:4}},
+    {s:{r:1,c:0},e:{r:1,c:4}},
+    {s:{r:2,c:0},e:{r:2,c:1}},
+  ];
+  ws2['!freeze']={xSplit:0,ySplit:4};
+  XLSX.utils.book_append_sheet(wb,ws2,'各运营新品成功率');
+
+  // ──────────────────────────────────────────────────────────────
+  // SHEET 3 : 明细数据
+  // ──────────────────────────────────────────────────────────────
+  const ws3Data=[];
+  // R0: title
+  ws3Data.push([
+    cell(`${ml} 新品明细数据（共 ${res.tot} 条）`,C.navyBg,C.navyFg,true,13,'center',null,false,borderMed()),
+    cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),
+    cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg),
+    cell('',C.navyBg,C.navyFg),cell('',C.navyBg,C.navyFg)
+  ]);
+  // R1: column headers
+  const detailHdrs=['小组','运营店铺','MSKU','SKU','店铺','站点','月销量','成功门槛','是否成功'];
+  ws3Data.push(detailHdrs.map(h=>cell(h,C.blueBg,C.blueFg,true,11,'center',null,false,borderMed(C.navyBg))));
+  // Data rows
+  const sorted=[...res.detail].sort((a,b)=>+a.grp-+b.grp||a.base.localeCompare(b.base));
+  sorted.forEach((d,i)=>{
+    const isOk=d.ok===1;
+    const bg=isOk?C.greenBg:i%2===0?C.whiteBg:C.grayBg;
+    const fg=isOk?C.greenFg:C.darkFg;
+    const bd=border(isOk?'92D050':C.borderGray);
+    ws3Data.push([
+      cell(`第${d.grp}组`,bg,fg,false,10,'center',null,false,bd),
+      cell(d.base,bg,fg,false,10,'left',null,false,bd),
+      cell(d.msku||'—',bg,fg,false,9,'left',null,false,bd),
+      cell(d.sku||'—',bg,d.sku?fg:'9E9E9E',false,10,'center',null,false,bd),
+      cell(d.store,bg,fg,false,10,'left',null,false,bd),
+      cell(d.site,d.site==='US'?C.tealBg:C.amberBg,d.site==='US'?C.tealFg:C.amberFg,true,10,'center',null,false,bd),
+      cell(d.qty,bg,isOk?C.greenFg:d.qty>0?C.darkFg:'BDBDBD',isOk,10,'center',numFmt,false,bd),
+      cell(d.thr,bg,fg,false,10,'center',null,false,bd),
+      cell(isOk?'✓ 成功':'✗ 未成功',isOk?C.greenBg:C.whiteBg,isOk?C.greenFg:'9E9E9E',isOk,10,'center',null,false,bd)
+    ]);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(ws3Data);
+  ws3['!cols']=[{wch:10},{wch:22},{wch:30},{wch:16},{wch:26},{wch:8},{wch:10},{wch:10},{wch:12}];
+  ws3['!rows']=[{hpt:24},{hpt:22}];
+  ws3['!merges']=[{s:{r:0,c:0},e:{r:0,c:8}}];
+  ws3['!freeze']={xSplit:0,ySplit:2};
+  XLSX.utils.book_append_sheet(wb,ws3,'明细数据');
+
+  // ──────────────────────────────────────────────────────────────
+  // SHEET 4 : 计算说明
+  // ──────────────────────────────────────────────────────────────
+  const ws4Data=[];
+  ws4Data.push([
+    cell(`${ml} 新品成功率 — 计算逻辑说明`,C.navyBg,C.navyFg,true,13,'center',null,false,borderMed()),
+    cell('',C.navyBg,C.navyFg)
+  ]);
+  ws4Data.push([cell('',C.whiteBg),cell('',C.whiteBg)]);
+
+  const section=(title)=>[
+    cell(title,C.blueBg,C.blueFg,true,11,'left',null,false,borderMed(C.navyBg)),
+    cell('',C.blueBg,C.blueFg)
+  ];
+  const row=(label,val,labelBg=C.grayBg,valBg=C.whiteBg)=>[
+    cell(label,labelBg,C.navyBg,true,10,'left',null,false,border(C.borderGray)),
+    cell(val,valBg,C.darkFg,false,10,'left',null,true,border(C.borderGray))
+  ];
+
+  ws4Data.push(section('【数据时间维度】'));
+  ws4Data.push(row('数据表① listing 新品数据',`开售时间范围：${dimL}`));
+  ws4Data.push(row('  用途','包含该区间内开售的全部 US/CA 新品，作为新品数量的统计基础'));
+  ws4Data.push(row('数据表② 销量统计数据',`统计区间：${dimS}（来源: ${S.sDateSrc||'—'}）`));
+  ws4Data.push(row('  用途','用于匹配以上新品在该统计区间内的月销量，判断是否达到成功标准'));
+  ws4Data.push([cell('',C.whiteBg),cell('',C.whiteBg)]);
+
+  ws4Data.push(section('【计算步骤】'));
+  ws4Data.push(row('第一步','准备数据：listing 表（新品清单）+ 销量表（当月汇总）'));
+  ws4Data.push(row('第二步','筛选：仅保留店铺以 -US 或 -CA 结尾的行，其他站点（如 UK）不计入'));
+  ws4Data.push(row('  本次数量',`US: ${res.detail.filter(d=>d.site==='US').length} 条，CA: ${res.detail.filter(d=>d.site==='CA').length} 条，合计 ${res.tot} 条`));
+  ws4Data.push(row('第三步',res.mode==='MSKU'?'匹配：有MSKU列，优先用 MSKU+店铺 关联；SKU+店铺作为兜底':'匹配：无MSKU列，用 SKU+店铺 关联；若有MSKU则互为兜底'));
+  ws4Data.push(row('  匹配结果',`共 ${res.matched} 条匹配到销量；${res.tot-res.matched} 条无记录（计0单）`));
+  ws4Data.push(row('第四步',`成功判定：US站点月销量 ≥ ${res.usT} 单 = 成功；CA站点月销量 ≥ ${res.caT} 单 = 成功`));
+  ws4Data.push(row('第五步','统计：以「店铺去站点后缀」为运营单元（如 SZ-5-C-李小兰），US+CA 合并统计'));
+  ws4Data.push([cell('',C.whiteBg),cell('',C.whiteBg)]);
+
+  ws4Data.push(section('【成功率公式】'));
+  ws4Data.push(row('运营成功率','该运营 US+CA 成功新品数 ÷ 该运营 US+CA 新品总数'));
+  ws4Data.push(row('小组成功率','该组所有运营成功新品总数之和 ÷ 该组所有运营新品总数之和'));
+  ws4Data.push(row('总体成功率',`${res.succ} ÷ ${res.tot} = ${(res.rate*100).toFixed(2)}%`));
+
+  if(note){
+    ws4Data.push([cell('',C.whiteBg),cell('',C.whiteBg)]);
+    ws4Data.push(section('【管理员备注】'));
+    ws4Data.push(row('备注内容',note,C.amberBg,C.amberBg));
+  }
+
+  const ws4=XLSX.utils.aoa_to_sheet(ws4Data);
+  ws4['!cols']=[{wch:24},{wch:64}];
+  ws4['!rows']=[{hpt:26}];
+  ws4['!merges']=[{s:{r:0,c:0},e:{r:0,c:1}},...ws4Data.map((_,i)=>i).filter(i=>{const c=ws4Data[i];return c&&c[0]&&c[0].s&&c[0].s.fill&&c[0].s.fill.fgColor&&c[0].s.fill.fgColor.rgb===C.blueBg;}).map(i=>({s:{r:i,c:0},e:{r:i,c:1}}))];
+  XLSX.utils.book_append_sheet(wb,ws4,'计算说明');
+
+  XLSX.writeFile(wb,ml+'新品成功率-绩效计算.xlsx');
+}
+
+// ══════════ Role UI ══════════
+function togglePop(){
+  S.popOpen=!S.popOpen;
+  if(S.role==='admin'&&S.popOpen){
+    $('ptitle').textContent='切换为查看者';$('pwi').style.display='none';
+    $('pwerr').style.display='none';$('pwhint').style.display='none';
+    $('pcbtn').textContent='确认切换';$('pcbtn').onclick=doLogout;
+  }else{
+    $('ptitle').textContent='管理员登录';$('pwi').style.display='';
+    $('pwerr').style.display='none';$('pwhint').style.display='';
+    $('pcbtn').textContent='登录';$('pcbtn').onclick=doLogin;
+    setTimeout(()=>$('pwi').focus(),50);
+  }
+  $('rpop').style.display=S.popOpen?'':'none';
+}
+function closePop(){S.popOpen=false;$('rpop').style.display='none';}
+function doLogin(){
+  if($('pwi').value===ADMIN_PW){S.role='admin';updateRoleUI();closePop();}
+  else{$('pwerr').style.display='';$('pwi').value='';$('pwi').focus();}
+}
+function doLogout(){S.role='viewer';updateRoleUI();closePop();}
+function updateRoleUI(){
+  const a=S.role==='admin';
+  $('role-badge').textContent=a?'管理员':'查看者';
+  $('role-badge').className='badge '+(a?'b-admin':'b-viewer');
+  $('sedit').style.display=a?'':'none';$('sview').style.display=a?'none':'';
+  $('anotewrap').style.display=a?'':'none';
+}
+function onTC(){
+  const us=+$('ust').value||30,ca=+$('cat').value||20;
+  $('usv').textContent=`≥ ${us} 单`;$('cav').textContent=`≥ ${ca} 单`;
+  $('lus').textContent=us;$('lca').textContent=ca;
+  $('lus2').textContent=us;$('lca2').textContent=ca;
+  $('snote').style.display='';
+}
+function toggleLogic(){
+  S.logicOpen=!S.logicOpen;
+  $('lbody').style.display=S.logicOpen?'':'none';
+  $('licon').textContent=S.logicOpen?'▾':'▸';
+}
+function showTab(i,el){
+  S.logicTab=i;
+  document.querySelectorAll('.ltab').forEach((t,idx)=>t.className='ltab'+(idx===i?' on':''));
+  ['tab0','tab1','tab2','tab3'].forEach((id,idx)=>$(id).style.display=idx===i?'':'none');
+}
+function updateBtn(){
+  const ready=!!(S.lRows&&S.sRows);
+  $('cbtn').disabled=!ready;
+  if(ready&&S.month){
+    $('cbtn').textContent=`计算 ${S.month.y}年${S.month.m}月 新品成功率`;
+  } else {
+    $('cbtn').textContent='计算新品成功率';
+  }
+}
+function showErr(msg){$('stbox').innerHTML=`<div class="errmsg">${msg}</div>`;}
+
+// ══════════ Data download guide ══════════
+function initGuide(){
+  const now=new Date();
+  const ysel=$('g-year');
+  for(let y=now.getFullYear()-1;y<=now.getFullYear()+1;y++){
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y;
+    if(y===now.getFullYear())o.selected=true;
+    ysel.appendChild(o);
+  }
+  $('g-month').value=now.getMonth()+1;
+  updateGuide();
+}
+
+function updateGuide(){
+  const year=+$('g-year').value, month=+$('g-month').value;
+  // Listing start: 3 months back from target month, day 23
+  let sM=month-3, sY=year;
+  if(sM<=0){sM+=12;sY--;}
+  const pad=n=>String(n).padStart(2,'0');
+  const startStr=`${sY}.${pad(sM)}.23`;
+  const endStr=`${year}.${pad(month)}.22`;
+  // Span in days
+  const d1=new Date(sY,sM-1,23), d2=new Date(year,month-1,22);
+  const days=Math.round((d2-d1)/(86400000))+1;
+  const mName=['一','二','三','四','五','六','七','八','九','十','十一','十二'];
+  $('g-l-start').textContent=startStr;
+  $('g-l-end').textContent=endStr;
+  $('g-l-span').textContent=`共 ${days} 天（约3个月）`;
+  $('g-l-note').textContent=`即：${sY}年${sM}月23日 至 ${year}年${month}月22日 期间开售的新品`;
+  $('g-s-period').textContent=`${year}年${month}月（整月）`;
+  $('g-s-note').textContent=`即：${year}年${month}月1日 至 ${year}年${month}月${new Date(year,month,0).getDate()}日 的销售数据`;
+}
+
+document.addEventListener('click',e=>{if(S.popOpen&&!$('rpop').contains(e.target)&&e.target.className!=='role-btn')closePop();});
+initGuide();
+</script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工具中心</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --bd:#21262d;--bd2:#30363d;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --acc:#e8a020;--acc2:rgba(232,160,32,.12);--acc3:rgba(232,160,32,.25);
+  --ok:#3fb950;--err:#f85149;--info:#58a6ff;
+  --r:7px;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',-apple-system,sans-serif;overflow:hidden}
+
+/* ── Layout ─────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* ── Header ─────────────────────────────── */
+#hdr{
+  display:flex;align-items:center;height:52px;padding:0 16px;
+  background:var(--bg2);border-bottom:1px solid var(--bd);
+  flex-shrink:0;gap:12px;position:relative;z-index:10;
+}
+#logo{
+  display:flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:700;color:var(--acc);
+  padding-right:14px;border-right:1px solid var(--bd);
+  white-space:nowrap;flex-shrink:0;
+}
+#logo svg{flex-shrink:0}
+
+/* ── Tabs ────────────────────────────────── */
+#tabs{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+#tabs::-webkit-scrollbar{display:none}
+.tab{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:var(--r);
+  border:1px solid transparent;background:none;
+  color:var(--t2);cursor:pointer;font-size:13px;
+  font-family:inherit;white-space:nowrap;
+  transition:all .15s;flex-shrink:0;
+}
+.tab:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.tab.active{background:var(--acc2);border-color:var(--acc3);color:var(--acc);font-weight:500}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── Header right ────────────────────────── */
+#hdr-r{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}
+.hbtn{
+  height:32px;padding:0 12px;border-radius:var(--r);
+  border:1px solid var(--bd);background:none;color:var(--t2);
+  cursor:pointer;font-size:12px;font-family:inherit;
+  display:flex;align-items:center;gap:5px;transition:all .15s;
+}
+.hbtn:hover{border-color:var(--info);color:var(--info)}
+.hbtn.icon{width:32px;padding:0;justify-content:center}
+.hbtn.icon:hover{border-color:var(--acc);color:var(--acc)}
+.hbtn svg{pointer-events:none}
+
+/* ── Main content ────────────────────────── */
+#main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
+#frm{
+  display:none;width:100%;height:100%;border:none;background:#fff;
+  position:absolute;inset:0;
+}
+#splash{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;padding:40px;
+  text-align:center;
+}
+#splash-icon{
+  width:64px;height:64px;border-radius:16px;
+  background:var(--acc2);border:1px solid var(--acc3);
+  display:flex;align-items:center;justify-content:center;
+}
+#splash h2{font-size:22px;font-weight:700;color:var(--t1)}
+#splash p{font-size:14px;color:var(--t2);max-width:420px;line-height:1.7}
+.splash-hint{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  border-radius:var(--r);background:var(--bg2);border:1px solid var(--bd);
+  font-size:12px;color:var(--t2);
+}
+#loader{
+  display:none;position:absolute;inset:0;background:var(--bg);
+  align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  font-size:13px;color:var(--t2);
+}
+.spin{
+  width:22px;height:22px;border:2px solid var(--bd);
+  border-top-color:var(--acc);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#errmsg{
+  display:none;position:absolute;inset:0;
+  align-items:center;justify-content:center;flex-direction:column;gap:14px;
+  padding:40px;text-align:center;
+}
+#errmsg .err-ico{font-size:36px}
+#errmsg h3{font-size:16px;color:var(--err)}
+#errmsg p{font-size:13px;color:var(--t2);max-width:380px;line-height:1.7}
+
+/* ── Status bar ──────────────────────────── */
+#sbar{
+  display:flex;align-items:center;height:26px;padding:0 16px;
+  background:var(--bg2);border-top:1px solid var(--bd);
+  font-size:11px;color:var(--t3);gap:10px;flex-shrink:0;
+}
+#s-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:background .3s}
+#s-txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#s-right{display:flex;align-items:center;gap:10px;opacity:.6}
+
+/* ── Setup Guide Overlay ─────────────────── */
+#guide-ovl{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);
+  z-index:900;align-items:center;justify-content:center;
+  padding:20px;
+}
+#guide{
+  background:var(--bg2);border:1px solid var(--bd);
+  border-radius:12px;width:660px;max-height:88vh;
+  overflow:hidden;display:flex;flex-direction:column;
+}
+#g-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;
+}
+#g-hdr h3{font-size:16px;font-weight:700}
+.close-btn{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);
+  background:none;color:var(--t2);cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.close-btn:hover{background:var(--bg3);color:var(--t1)}
+#g-body{padding:24px;overflow-y:auto;flex:1}
+.g-intro{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:22px;padding:12px 16px;background:var(--bg3);border-radius:var(--r);border-left:3px solid var(--acc)}
+
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--bd)}
+.step:last-child{border-bottom:none}
+.step-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--acc2);border:1px solid var(--acc3);
+  color:var(--acc);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step-con{flex:1}
+.step-con h4{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--t1)}
+.step-con p{font-size:12px;color:var(--t2);line-height:1.7}
+.step-con code{
+  display:inline-block;background:var(--bg);border:1px solid var(--bd);
+  border-radius:4px;padding:2px 6px;font-family:monospace;font-size:11px;
+  color:var(--info);margin:4px 2px;
+}
+.step-con .url-box{
+  margin-top:8px;padding:8px 12px;background:var(--bg);
+  border:1px solid var(--bd);border-radius:5px;
+  font-family:monospace;font-size:12px;color:var(--ok);
+  word-break:break-all;
+}
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;
+}
+.tag.free{background:rgba(63,185,80,.12);color:var(--ok)}
+.tag.req{background:rgba(232,160,32,.12);color:var(--acc)}
+.section-title{font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.05em;text-transform:uppercase;margin:20px 0 10px}
+
+.update-steps{display:flex;flex-direction:column;gap:8px}
+.u-step{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:5px}
+.u-num{width:18px;height:18px;border-radius:50%;background:var(--bd);color:var(--t2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.u-step p{font-size:12px;color:var(--t2);line-height:1.6}
+.u-step strong{color:var(--t1)}
+
+#g-footer{
+  padding:16px 24px;border-top:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+#g-footer p{font-size:12px;color:var(--t3)}
+.btn-acc{
+  padding:8px 18px;border-radius:var(--r);border:none;
+  background:var(--acc);color:#000;font-weight:700;font-size:13px;
+  cursor:pointer;font-family:inherit;transition:filter .15s;
+}
+.btn-acc:hover{filter:brightness(1.1)}
+
+/* ── Notification toast ──────────────────── */
+#toast{
+  position:fixed;bottom:42px;left:50%;transform:translateX(-50%);
+  padding:9px 20px;border-radius:var(--r);font-size:12px;
+  pointer-events:none;opacity:0;transition:opacity .25s;
+  z-index:999;white-space:nowrap;
+}
+#toast.ok{background:rgba(63,185,80,.15);border:1px solid var(--ok);color:var(--ok)}
+#toast.err{background:rgba(248,81,73,.15);border:1px solid var(--err);color:var(--err)}
+#toast.info{background:rgba(88,166,255,.15);border:1px solid var(--info);color:var(--info)}
+#toast.show{opacity:1}
+
+/* ── Responsive ──────────────────────────── */
+@media(max-width:600px){
+  #logo span{display:none}
+  .tab{padding:6px 10px;font-size:12px}
+  #guide{width:100%;border-radius:12px 12px 0 0;max-height:92vh;margin-top:auto}
+  #guide-ovl{align-items:flex-end}
+}
+</style>
+</head>
+<body>
+
+<!--
+╔══════════════════════════════════════════════════════╗
+║            工具中心  —  配置区（管理员编辑）             ║
+╚══════════════════════════════════════════════════════╝
+  修改 TOOLS 数组中的 name（显示名）和 file（文件名）即可
+  文件名需与同目录下的 HTML 文件完全一致
+-->
+<script>
+const TOOLS = [
+  { id: 1, name: '审核系统完整版',       file: '审核系统完整版.html' },
+  { id: 2, name: '售价核查工具',         file: '售价核查工具.html' },
+  { id: 3, name: '新品成功率计算工具',   file: '新品成功率计算工具.html' },
+  { id: 4, name: '亚马逊周报生成器',     file: '亚马逊周报生成器_v7.html' },
+];
+const HUB_VERSION = '1.0.0';
+</script>
+
+<div id="app">
+  <!-- Header -->
+  <div id="hdr">
+    <div id="logo">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="1" y="1" width="7" height="7" rx="2" fill="#e8a020" opacity=".9"/>
+        <rect x="10" y="1" width="7" height="7" rx="2" fill="#e8a020" opacity=".55"/>
+        <rect x="1" y="10" width="7" height="7" rx="2" fill="#e8a020" opacity=".55"/>
+        <rect x="10" y="10" width="7" height="7" rx="2" fill="#e8a020" opacity=".25"/>
+      </svg>
+      <span>工具中心</span>
+    </div>
+    <div id="tabs"></div>
+    <div id="hdr-r">
+      <button class="hbtn" id="refresh-btn" onclick="hubRefresh()" title="重新拉取最新版本">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 3a5 5 0 0 0-4.546 2.914.5.5 0 0 1-.908-.417A6 6 0 0 1 8 2c1.468 0 2.81.555 3.823 1.465L13 2v4h-4l1.44-1.44A4.005 4.005 0 0 0 8 4a4 4 0 0 0-3.584 2.213.5.5 0 1 1-.896-.44A5 5 0 0 1 8 3zm4.948 6.364a.5.5 0 0 1 .908.416A6 6 0 0 1 8 14c-1.468 0-2.81-.555-3.823-1.465L3 14v-4h4l-1.44 1.44A4.005 4.005 0 0 0 8 12a4 4 0 0 0 3.584-2.213.5.5 0 0 1 .364-.423z"/>
+        </svg>
+        刷新最新版
+      </button>
+      <button class="hbtn icon" onclick="showGuide()" title="使用说明 / 部署指南">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main area -->
+  <div id="main">
+    <!-- Splash screen -->
+    <div id="splash">
+      <div id="splash-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#e8a020">
+          <path d="M4 5h16v2H4zm0 4h16v2H4zm0 4h10v2H4zm0 4h7v2H4z"/>
+        </svg>
+      </div>
+      <h2>工具中心</h2>
+      <p>选择上方工具开始使用。所有工具实时加载，管理员更新后点击「刷新最新版」即可同步最新内容。</p>
+      <div class="splash-hint">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="#e8a020">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+        </svg>
+        点击右上角「?」查看部署指南与更新方法
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loader">
+      <div class="spin"></div>
+      <span id="loader-msg">加载中...</span>
+    </div>
+
+    <!-- Error -->
+    <div id="errmsg">
+      <div class="err-ico">⚠</div>
+      <h3>工具加载失败</h3>
+      <p id="err-detail">无法找到工具文件，请确认文件已上传至 GitHub 仓库，且文件名与配置一致。</p>
+    </div>
+
+    <!-- Tool iframe -->
+    <iframe id="frm" title="工具内容" allow="clipboard-read; clipboard-write"></iframe>
+  </div>
+
+  <!-- Status bar -->
+  <div id="sbar">
+    <div id="s-dot"></div>
+    <span id="s-txt">就绪 · 选择工具开始使用</span>
+    <div id="s-right">
+      <span id="s-updated"></span>
+      <span>Hub v<span id="s-ver"></span></span>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Guide Overlay -->
+<div id="guide-ovl" onclick="guideOvlClick(event)">
+  <div id="guide">
+    <div id="g-hdr">
+      <h3>部署指南 &amp; 更新说明</h3>
+      <button class="close-btn" onclick="hideGuide()">✕</button>
+    </div>
+    <div id="g-body">
+      <div class="g-intro">
+        本工具中心部署在 GitHub Pages（免费），团队成员只需浏览器 + 访问链接，无需任何账号。
+        管理员在 GitHub 更新工具文件后，成员点击「刷新最新版」即可同步。
+      </div>
+
+      <div class="section-title">首次部署（仅做一次）</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-con">
+            <h4>注册 GitHub 账号 <span class="tag free">免费</span></h4>
+            <p>访问 <code>github.com</code> 注册，用于托管工具文件。团队成员不需要账号。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-con">
+            <h4>创建新仓库</h4>
+            <p>登录后点击右上角 <code>+</code> → <code>New repository</code><br>
+            仓库名随意（如 <code>my-tools</code>），勾选 <strong style="color:var(--t1)">Public</strong>（公开），点击创建。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-con">
+            <h4>上传全部文件 <span class="tag req">5个文件</span></h4>
+            <p>进入仓库页面 → 点击 <code>uploading an existing file</code> 或 <code>Add file → Upload files</code><br>
+            将以下 5 个文件一起拖入上传区域：</p>
+            <p style="margin-top:8px">
+              <code>index.html</code>
+              <code>审核系统完整版.html</code>
+              <code>售价核查工具.html</code>
+              <code>新品成功率计算工具.html</code>
+              <code>亚马逊周报生成器_v7.html</code>
+            </p>
+            <p style="margin-top:6px">上传后点击 <code>Commit changes</code> 保存。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-con">
+            <h4>开启 GitHub Pages</h4>
+            <p>进入仓库 → 顶部 <code>Settings</code> → 左侧 <code>Pages</code><br>
+            在 <strong style="color:var(--t1)">Source</strong> 下拉选 <code>Deploy from a branch</code>，Branch 选 <code>main</code>，点击 <code>Save</code>。<br>
+            等待约 1 分钟，页面会出现你的访问链接：</p>
+            <div class="url-box">https://你的用户名.github.io/仓库名/</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-con">
+            <h4>分享链接给团队</h4>
+            <p>将上一步得到的链接发给所有团队成员，直接用浏览器打开即可，<strong style="color:var(--t1)">不需要注册任何账号</strong>。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px">更新工具（日常操作）</div>
+      <div class="update-steps">
+        <div class="u-step"><div class="u-num">1</div><p>登录 GitHub → 进入仓库页面</p></div>
+        <div class="u-step"><div class="u-num">2</div><p>点击要更新的工具文件名，右上角点击铅笔图标 <strong>Edit</strong> 或直接 <strong>Upload files 重新上传</strong>同名新文件</p></div>
+        <div class="u-step"><div class="u-num">3</div><p>点击 <strong>Commit changes</strong> 保存</p></div>
+        <div class="u-step"><div class="u-num">4</div><p>等待约 30 秒 ~ 1 分钟，GitHub Pages 自动更新</p></div>
+        <div class="u-step"><div class="u-num">5</div><p>通知团队成员点击工具中心右上角 <strong>「刷新最新版」</strong> 按钮，即可加载新版本</p></div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px">添加新工具</div>
+      <div class="update-steps">
+        <div class="u-step"><div class="u-num">1</div><p>将新工具 HTML 文件上传到 GitHub 仓库</p></div>
+        <div class="u-step"><div class="u-num">2</div><p>用文本编辑器打开 <strong>index.html</strong>，在顶部 <code>TOOLS</code> 数组中添加一行：<br><code>{ id: 5, name: '新工具名称', file: '新工具文件名.html' },</code></p></div>
+        <div class="u-step"><div class="u-num">3</div><p>重新上传修改后的 index.html 到 GitHub，提交后即生效</p></div>
+      </div>
+    </div>
+    <div id="g-footer">
+      <p>团队成员无需账号，只需浏览器打开链接即可使用</p>
+      <button class="btn-acc" onclick="hideGuide()">知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ─── State ───────────────────────────── */
+let curTool = null;
+let blobURL  = null;
+let toastTimer = null;
+
+/* ─── Init ───────────────────────────── */
+document.getElementById('s-ver').textContent = HUB_VERSION;
+buildTabs();
+setStatus('就绪 · 选择工具开始使用', '');
+
+/* ─── Tabs ───────────────────────────── */
+function buildTabs() {
+  const c = document.getElementById('tabs');
+  c.innerHTML = '';
+  TOOLS.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (curTool === t.id ? ' active' : '');
+    b.dataset.id = t.id;
+    b.innerHTML = '<span class="tab-dot"></span>' + t.name;
+    b.onclick = () => openTool(t);
+    c.appendChild(b);
+  });
+}
+
+function setActiveTab(id) {
+  document.querySelectorAll('.tab').forEach(b => {
+    b.classList.toggle('active', +b.dataset.id === id);
+  });
+}
+
+/* ─── Load Tool ───────────────────────── */
+async function openTool(t, forceRefresh) {
+  if (curTool === t.id && !forceRefresh) return;
+  curTool = t.id;
+  setActiveTab(t.id);
+  showLoader('正在加载「' + t.name + '」...');
+  setStatus('加载中...', '#e8a020');
+
+  try {
+    const url = './' + encodeURIComponent(t.file);
+    const opts = forceRefresh
+      ? { cache: 'reload', headers: { 'Cache-Control': 'no-cache' } }
+      : {};
+    const res = await fetch(url, opts);
+
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' — 文件未找到');
+
+    const html = await res.text();
+    renderTool(html, t.name);
+    const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('s-updated').textContent = '加载于 ' + now;
+    setStatus('当前：' + t.name, '#3fb950');
+    if (forceRefresh) toast('已加载最新版本', 'ok');
+
+  } catch (e) {
+    showError('无法加载「' + t.name + '」\n\n请确认文件 ' + t.file + ' 已上传到 GitHub 仓库，且文件名拼写与配置完全一致。\n\n错误详情：' + e.message);
+    setStatus('加载失败', '#f85149');
+  }
+}
+
+function renderTool(html, name) {
+  hideAll();
+  if (blobURL) { URL.revokeObjectURL(blobURL); blobURL = null; }
+  try {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    blobURL = URL.createObjectURL(blob);
+    const f = document.getElementById('frm');
+    f.src = blobURL;
+    f.style.display = 'block';
+  } catch {
+    const f = document.getElementById('frm');
+    f.removeAttribute('src');
+    f.srcdoc = html;
+    f.style.display = 'block';
+  }
+}
+
+/* ─── Refresh ─────────────────────────── */
+async function hubRefresh() {
+  if (!curTool) { toast('请先选择一个工具', 'info'); return; }
+  const t = TOOLS.find(x => x.id === curTool);
+  if (t) await openTool(t, true);
+}
+
+/* ─── UI helpers ──────────────────────── */
+function hideAll() {
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('errmsg').style.display = 'none';
+  document.getElementById('frm').style.display = 'none';
+}
+
+function showLoader(msg) {
+  hideAll();
+  document.getElementById('loader-msg').textContent = msg || '加载中...';
+  document.getElementById('loader').style.display = 'flex';
+}
+
+function showError(msg) {
+  hideAll();
+  document.getElementById('err-detail').textContent = msg;
+  document.getElementById('errmsg').style.display = 'flex';
+}
+
+function setStatus(txt, color) {
+  document.getElementById('s-txt').textContent = txt;
+  document.getElementById('s-dot').style.background = color || '#484f58';
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = type + ' show';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ─── Guide ───────────────────────────── */
+function showGuide() { document.getElementById('guide-ovl').style.display = 'flex'; }
+function hideGuide() { document.getElementById('guide-ovl').style.display = 'none'; }
+function guideOvlClick(e) { if (e.target === document.getElementById('guide-ovl')) hideGuide(); }
+
+/* ─── Keyboard ────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideGuide();
+  if (e.key === 'F5' || (e.metaKey && e.key === 'r')) { e.preventDefault(); hubRefresh(); }
+  if (e.altKey && e.key >= '1' && e.key <= '9') {
+    const t = TOOLS[+e.key - 1];
+    if (t) openTool(t);
+  }
+});
+</script>
+</body>
+</html>
