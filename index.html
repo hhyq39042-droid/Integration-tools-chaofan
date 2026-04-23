@@ -1,533 +1,527 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light" data-accent="blue">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>工具中心</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
-  --bd:#21262d;--bd2:#30363d;
-  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
-  --acc:#e8a020;--acc2:rgba(232,160,32,.12);--acc3:rgba(232,160,32,.25);
-  --ok:#3fb950;--err:#f85149;--info:#58a6ff;
-  --r:7px;
+[data-accent="blue"]  {--acc:#2563eb;--acc-bg:rgba(37,99,235,.08);--acc-bd:rgba(37,99,235,.22)}
+[data-accent="teal"]  {--acc:#0d9488;--acc-bg:rgba(13,148,136,.08);--acc-bd:rgba(13,148,136,.22)}
+[data-accent="violet"]{--acc:#7c3aed;--acc-bg:rgba(124,58,237,.08);--acc-bd:rgba(124,58,237,.22)}
+[data-accent="rose"]  {--acc:#e11d48;--acc-bg:rgba(225,29,72,.08);--acc-bd:rgba(225,29,72,.22)}
+[data-accent="amber"] {--acc:#d97706;--acc-bg:rgba(217,119,6,.08);--acc-bd:rgba(217,119,6,.22)}
+[data-accent="slate"] {--acc:#475569;--acc-bg:rgba(71,85,105,.08);--acc-bd:rgba(71,85,105,.22)}
+[data-theme="light"]{
+  --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--bg4:#e2e8f0;
+  --bd:#e2e8f0;--bd2:#cbd5e1;
+  --t1:#0f172a;--t2:#475569;--t3:#94a3b8;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow2:0 4px 16px rgba(0,0,0,.1);
 }
-html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',-apple-system,sans-serif;overflow:hidden}
-
-/* ── Layout ─────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0f172a;--bg2:#1e293b;--bg3:#1c2a3a;--bg4:#334155;
+  --bd:#243044;--bd2:#334155;
+  --t1:#f1f5f9;--t2:#94a3b8;--t3:#475569;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
+  --shadow2:0 4px 16px rgba(0,0,0,.4);
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',-apple-system,sans-serif;overflow:hidden;transition:background .2s,color .2s}
 #app{display:flex;flex-direction:column;height:100vh}
 
-/* ── Header ─────────────────────────────── */
-#hdr{
-  display:flex;align-items:center;height:52px;padding:0 16px;
-  background:var(--bg2);border-bottom:1px solid var(--bd);
-  flex-shrink:0;gap:12px;position:relative;z-index:10;
-}
-#logo{
-  display:flex;align-items:center;gap:8px;
-  font-size:14px;font-weight:700;color:var(--acc);
-  padding-right:14px;border-right:1px solid var(--bd);
-  white-space:nowrap;flex-shrink:0;
-}
-#logo svg{flex-shrink:0}
+/* Header */
+#hdr{display:flex;align-items:center;height:54px;padding:0 18px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0;gap:12px;box-shadow:var(--shadow);position:relative;z-index:50}
+#logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--acc);padding-right:16px;border-right:1px solid var(--bd);white-space:nowrap;flex-shrink:0;letter-spacing:-.3px}
 
-/* ── Tabs ────────────────────────────────── */
-#tabs{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+/* Tabs */
+#tabs{display:flex;gap:3px;flex:1;overflow-x:auto;scrollbar-width:none;padding:3px 0}
 #tabs::-webkit-scrollbar{display:none}
-.tab{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 14px;border-radius:var(--r);
-  border:1px solid transparent;background:none;
-  color:var(--t2);cursor:pointer;font-size:13px;
-  font-family:inherit;white-space:nowrap;
-  transition:all .15s;flex-shrink:0;
-}
-.tab:hover{background:rgba(255,255,255,.05);color:var(--t1)}
-.tab.active{background:var(--acc2);border-color:var(--acc3);color:var(--acc);font-weight:500}
-.tab-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.tab{position:relative;display:flex;align-items:center;gap:7px;padding:6px 15px;border-radius:8px;border:1px solid transparent;background:none;color:var(--t2);cursor:pointer;font-size:13px;font-family:inherit;white-space:nowrap;transition:all .15s;flex-shrink:0;font-weight:500}
+.tab:hover{background:var(--bg3);color:var(--t1)}
+.tab.active{background:var(--acc-bg);border-color:var(--acc-bd);color:var(--acc)}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.45;transition:opacity .2s}
+.tab.active .tab-dot{opacity:1}
 
-/* ── Header right ────────────────────────── */
-#hdr-r{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}
-.hbtn{
-  height:32px;padding:0 12px;border-radius:var(--r);
-  border:1px solid var(--bd);background:none;color:var(--t2);
-  cursor:pointer;font-size:12px;font-family:inherit;
-  display:flex;align-items:center;gap:5px;transition:all .15s;
+/* Update badge on tab */
+.tab-badge{
+  display:none;position:absolute;top:2px;right:2px;
+  width:8px;height:8px;border-radius:50%;
+  background:#ef4444;border:1.5px solid var(--bg2);
+  animation:pulse 2s infinite;
 }
-.hbtn:hover{border-color:var(--info);color:var(--info)}
-.hbtn.icon{width:32px;padding:0;justify-content:center}
-.hbtn.icon:hover{border-color:var(--acc);color:var(--acc)}
-.hbtn svg{pointer-events:none}
+.tab.has-update .tab-badge{display:block}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.2)}}
 
-/* ── Main content ────────────────────────── */
-#main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
-#frm{
-  display:none;width:100%;height:100%;border:none;background:#fff;
-  position:absolute;inset:0;
+/* Header right */
+#hdr-r{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:6px}
+.hbtn{height:32px;padding:0 11px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);color:var(--t2);cursor:pointer;font-size:12px;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:var(--shadow);font-weight:500}
+.hbtn:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-bg)}
+.hbtn.icon-only{width:32px;padding:0;justify-content:center}
+
+/* Main */
+#main{flex:1;position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+
+/* Update banner */
+#update-banner{
+  display:none;align-items:center;justify-content:space-between;
+  padding:9px 18px;background:linear-gradient(90deg,#fef3c7,#fde68a);
+  border-bottom:1px solid #f59e0b;flex-shrink:0;gap:12px;
 }
-#splash{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:20px;padding:40px;
-  text-align:center;
-}
-#splash-icon{
-  width:64px;height:64px;border-radius:16px;
-  background:var(--acc2);border:1px solid var(--acc3);
-  display:flex;align-items:center;justify-content:center;
-}
-#splash h2{font-size:22px;font-weight:700;color:var(--t1)}
-#splash p{font-size:14px;color:var(--t2);max-width:420px;line-height:1.7}
-.splash-hint{
-  display:flex;align-items:center;gap:8px;padding:10px 16px;
-  border-radius:var(--r);background:var(--bg2);border:1px solid var(--bd);
-  font-size:12px;color:var(--t2);
-}
-#loader{
-  display:none;position:absolute;inset:0;background:var(--bg);
-  align-items:center;justify-content:center;flex-direction:column;gap:14px;
-  font-size:13px;color:var(--t2);
-}
-.spin{
-  width:22px;height:22px;border:2px solid var(--bd);
-  border-top-color:var(--acc);border-radius:50%;
-  animation:spin .7s linear infinite;
-}
+[data-theme="dark"] #update-banner{background:linear-gradient(90deg,rgba(217,119,6,.2),rgba(245,158,11,.15));border-color:rgba(245,158,11,.4)}
+#update-banner-txt{font-size:13px;font-weight:600;color:#92400e;display:flex;align-items:center;gap:8px}
+[data-theme="dark"] #update-banner-txt{color:#fcd34d}
+#update-banner-txt svg{flex-shrink:0}
+.banner-btns{display:flex;gap:8px;flex-shrink:0}
+.banner-btn{padding:5px 13px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.banner-btn.primary{background:#d97706;color:#fff}
+.banner-btn.primary:hover{background:#b45309}
+.banner-btn.ghost{background:rgba(0,0,0,.06);color:#92400e}
+[data-theme="dark"] .banner-btn.ghost{background:rgba(255,255,255,.08);color:#fcd34d}
+.banner-btn.ghost:hover{background:rgba(0,0,0,.12)}
+
+#frame-wrap{flex:1;position:relative;overflow:hidden}
+#splash{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:48px;text-align:center}
+.splash-ring{width:72px;height:72px;border-radius:20px;background:var(--acc-bg);border:1px solid var(--acc-bd);display:flex;align-items:center;justify-content:center}
+#splash h2{font-size:24px;font-weight:700;letter-spacing:-.4px}
+#splash p{font-size:14px;color:var(--t2);max-width:400px;line-height:1.75}
+.splash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:4px;width:100%;max-width:480px}
+.splash-card{padding:14px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--bg2);text-align:left;cursor:pointer;transition:all .18s;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.splash-card:hover{border-color:var(--acc-bd);background:var(--acc-bg);transform:translateY(-1px);box-shadow:var(--shadow2)}
+.sc-num{font-size:11px;font-weight:700;color:var(--acc);margin-bottom:5px}
+.sc-name{font-size:13px;font-weight:600;color:var(--t1)}
+.sc-badge{display:none;position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:20px;background:#ef4444;color:#fff;font-size:10px;font-weight:700}
+.has-update .sc-badge{display:block}
+
+#loader{display:none;position:absolute;inset:0;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:14px;font-size:13px;color:var(--t2)}
+.spin{width:22px;height:22px;border:2.5px solid var(--bd2);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+#errmsg{display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:48px;text-align:center}
+#errmsg .err-ico{font-size:40px;margin-bottom:4px}
+#errmsg h3{font-size:16px;font-weight:700;color:#e11d48}
+#errmsg p{font-size:13px;color:var(--t2);max-width:420px;line-height:1.7;white-space:pre-line}
+#frm{display:none;width:100%;height:100%;border:none;background:#fff;position:absolute;inset:0}
 
-#errmsg{
-  display:none;position:absolute;inset:0;
-  align-items:center;justify-content:center;flex-direction:column;gap:14px;
-  padding:40px;text-align:center;
-}
-#errmsg .err-ico{font-size:36px}
-#errmsg h3{font-size:16px;color:var(--err)}
-#errmsg p{font-size:13px;color:var(--t2);max-width:380px;line-height:1.7}
-
-/* ── Status bar ──────────────────────────── */
-#sbar{
-  display:flex;align-items:center;height:26px;padding:0 16px;
-  background:var(--bg2);border-top:1px solid var(--bd);
-  font-size:11px;color:var(--t3);gap:10px;flex-shrink:0;
-}
+/* Status bar */
+#sbar{display:flex;align-items:center;height:28px;padding:0 16px;background:var(--bg2);border-top:1px solid var(--bd);font-size:11px;color:var(--t3);gap:10px;flex-shrink:0}
 #s-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:background .3s}
 #s-txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#s-right{display:flex;align-items:center;gap:10px;opacity:.6}
+#s-meta{display:flex;gap:12px;opacity:.65;flex-shrink:0}
+#s-check{color:var(--acc);display:none}
 
-/* ── Setup Guide Overlay ─────────────────── */
-#guide-ovl{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);
-  z-index:900;align-items:center;justify-content:center;
-  padding:20px;
-}
-#guide{
-  background:var(--bg2);border:1px solid var(--bd);
-  border-radius:12px;width:660px;max-height:88vh;
-  overflow:hidden;display:flex;flex-direction:column;
-}
-#g-hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 24px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;
-}
-#g-hdr h3{font-size:16px;font-weight:700}
-.close-btn{
-  width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);
-  background:none;color:var(--t2);cursor:pointer;font-size:15px;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
-}
-.close-btn:hover{background:var(--bg3);color:var(--t1)}
-#g-body{padding:24px;overflow-y:auto;flex:1}
-.g-intro{font-size:13px;color:var(--t2);line-height:1.7;margin-bottom:22px;padding:12px 16px;background:var(--bg3);border-radius:var(--r);border-left:3px solid var(--acc)}
+/* Settings */
+#settings-ovl{display:none;position:fixed;inset:0;z-index:500;align-items:flex-start;justify-content:flex-end;padding:60px 16px 0}
+#settings-panel{width:280px;background:var(--bg2);border:1px solid var(--bd);border-radius:14px;overflow:hidden;box-shadow:var(--shadow2);animation:fadeDown .18s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.sp-hdr{padding:16px 18px 12px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.sp-sec{padding:14px 18px;border-bottom:1px solid var(--bd)}
+.sp-sec:last-child{border-bottom:none}
+.sp-label{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.theme-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.theme-btn{padding:8px 4px;border-radius:8px;border:1.5px solid var(--bd);background:var(--bg3);color:var(--t2);cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .15s}
+.theme-btn:hover{border-color:var(--acc-bd);color:var(--acc)}
+.theme-btn.on{border-color:var(--acc);background:var(--acc-bg);color:var(--acc)}
+.theme-ico{font-size:16px;line-height:1}
+.accent-row{display:flex;gap:7px;flex-wrap:wrap}
+.acc-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:all .15s;flex-shrink:0}
+.acc-swatch:hover{transform:scale(1.12)}
+.acc-swatch.on{border-color:var(--t1);box-shadow:0 0 0 2px var(--bg2),0 0 0 3.5px currentColor}
+.check-row{display:flex;align-items:center;justify-content:space-between}
+.check-row span{font-size:12px;color:var(--t2)}
+.sp-close{width:24px;height:24px;border-radius:6px;border:1px solid var(--bd);background:none;color:var(--t2);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.sp-close:hover{background:var(--bg3);color:var(--t1)}
+select{padding:5px 8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg3);color:var(--t1);font-size:12px;font-family:inherit;cursor:pointer}
 
-.steps{display:flex;flex-direction:column;gap:0}
-.step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--bd)}
-.step:last-child{border-bottom:none}
-.step-num{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--acc2);border:1px solid var(--acc3);
-  color:var(--acc);font-size:13px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.step-con{flex:1}
-.step-con h4{font-size:13px;font-weight:700;margin-bottom:6px;color:var(--t1)}
-.step-con p{font-size:12px;color:var(--t2);line-height:1.7}
-.step-con code{
-  display:inline-block;background:var(--bg);border:1px solid var(--bd);
-  border-radius:4px;padding:2px 6px;font-family:monospace;font-size:11px;
-  color:var(--info);margin:4px 2px;
-}
-.step-con .url-box{
-  margin-top:8px;padding:8px 12px;background:var(--bg);
-  border:1px solid var(--bd);border-radius:5px;
-  font-family:monospace;font-size:12px;color:var(--ok);
-  word-break:break-all;
-}
-.tag{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;
-}
-.tag.free{background:rgba(63,185,80,.12);color:var(--ok)}
-.tag.req{background:rgba(232,160,32,.12);color:var(--acc)}
-.section-title{font-size:12px;font-weight:700;color:var(--t2);letter-spacing:.05em;text-transform:uppercase;margin:20px 0 10px}
-
-.update-steps{display:flex;flex-direction:column;gap:8px}
-.u-step{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:5px}
-.u-num{width:18px;height:18px;border-radius:50%;background:var(--bd);color:var(--t2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.u-step p{font-size:12px;color:var(--t2);line-height:1.6}
-.u-step strong{color:var(--t1)}
-
-#g-footer{
-  padding:16px 24px;border-top:1px solid var(--bd);
-  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-}
-#g-footer p{font-size:12px;color:var(--t3)}
-.btn-acc{
-  padding:8px 18px;border-radius:var(--r);border:none;
-  background:var(--acc);color:#000;font-weight:700;font-size:13px;
-  cursor:pointer;font-family:inherit;transition:filter .15s;
-}
+/* Guide */
+#guide-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+#guide{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;width:640px;max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow2);animation:fadeDown .18s ease}
+.g-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.g-hdr h3{font-size:16px;font-weight:700}
+.g-body{padding:22px 24px;overflow-y:auto;flex:1}
+.g-section{margin-bottom:22px}
+.g-section:last-child{margin-bottom:0}
+.g-stitle{font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+.update-list{display:flex;flex-direction:column;gap:8px}
+.ul-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:8px}
+.ul-n{width:18px;height:18px;border-radius:50%;background:var(--bg4);color:var(--t2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ul-item p{font-size:12px;color:var(--t2);line-height:1.6}
+.ul-item strong{color:var(--t1)}
+code{background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:2px 6px;font-family:monospace;font-size:11px;color:var(--acc)}
+.url-box{margin-top:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;font-family:monospace;font-size:12px;color:var(--acc);word-break:break-all;font-weight:600}
+.g-footer{padding:14px 24px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.g-footer p{font-size:12px;color:var(--t3)}
+.btn-acc{padding:8px 18px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:filter .15s}
 .btn-acc:hover{filter:brightness(1.1)}
 
-/* ── Notification toast ──────────────────── */
-#toast{
-  position:fixed;bottom:42px;left:50%;transform:translateX(-50%);
-  padding:9px 20px;border-radius:var(--r);font-size:12px;
-  pointer-events:none;opacity:0;transition:opacity .25s;
-  z-index:999;white-space:nowrap;
-}
-#toast.ok{background:rgba(63,185,80,.15);border:1px solid var(--ok);color:var(--ok)}
-#toast.err{background:rgba(248,81,73,.15);border:1px solid var(--err);color:var(--err)}
-#toast.info{background:rgba(88,166,255,.15);border:1px solid var(--info);color:var(--info)}
+/* Toast */
+#toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);padding:9px 20px;border-radius:9px;font-size:12px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .22s;z-index:999;white-space:nowrap}
+#toast.ok{background:#dcfce7;border:1px solid #86efac;color:#166534}
+#toast.err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b}
+#toast.info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af}
+#toast.warn{background:#fef3c7;border:1px solid #fcd34d;color:#92400e}
+[data-theme="dark"] #toast.ok{background:#14532d;border-color:#166534;color:#86efac}
+[data-theme="dark"] #toast.err{background:#450a0a;border-color:#991b1b;color:#fca5a5}
+[data-theme="dark"] #toast.info{background:#1e3a5f;border-color:#1e40af;color:#93c5fd}
+[data-theme="dark"] #toast.warn{background:#451a03;border-color:#92400e;color:#fcd34d}
 #toast.show{opacity:1}
-
-/* ── Responsive ──────────────────────────── */
-@media(max-width:600px){
-  #logo span{display:none}
-  .tab{padding:6px 10px;font-size:12px}
-  #guide{width:100%;border-radius:12px 12px 0 0;max-height:92vh;margin-top:auto}
-  #guide-ovl{align-items:flex-end}
-}
 </style>
 </head>
 <body>
 
-<!--
-╔══════════════════════════════════════════════════════╗
-║            工具中心  —  配置区（管理员编辑）             ║
-╚══════════════════════════════════════════════════════╝
-  修改 TOOLS 数组中的 name（显示名）和 file（文件名）即可
-  文件名需与同目录下的 HTML 文件完全一致
--->
+<!-- ══════════════════════════════════════════
+     配置区 — 管理员修改此处
+     CHECK_INTERVAL: 检查更新的间隔（毫秒），默认3分钟
+════════════════════════════════════════════ -->
 <script>
 const TOOLS = [
-  { id: 1, name: '审核系统完整版',       file: '审核系统完整版.html' },
-  { id: 2, name: '售价核查工具',         file: '售价核查工具.html' },
-  { id: 3, name: '新品成功率计算工具',   file: '新品成功率计算工具.html' },
-  { id: 4, name: '亚马逊周报生成器',     file: '亚马逊周报生成器_v7.html' },
+  { id:1, name:'审核系统完整版',       file:'审核系统完整版.html',       emoji:'📋' },
+  { id:2, name:'售价核查工具',         file:'售价核查工具.html',         emoji:'💰' },
+  { id:3, name:'新品成功率计算工具',   file:'新品成功率计算工具.html',   emoji:'📊' },
+  { id:4, name:'亚马逊周报生成器',     file:'亚马逊周报生成器_v7.html', emoji:'📈' },
 ];
-const HUB_VERSION = '1.0.0';
+const HUB_VERSION  = '1.2.0';
+const CHECK_INTERVAL = 3 * 60 * 1000; // 3分钟检查一次
 </script>
 
 <div id="app">
   <!-- Header -->
   <div id="hdr">
     <div id="logo">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <rect x="1" y="1" width="7" height="7" rx="2" fill="#e8a020" opacity=".9"/>
-        <rect x="10" y="1" width="7" height="7" rx="2" fill="#e8a020" opacity=".55"/>
-        <rect x="1" y="10" width="7" height="7" rx="2" fill="#e8a020" opacity=".55"/>
-        <rect x="10" y="10" width="7" height="7" rx="2" fill="#e8a020" opacity=".25"/>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="2" y="2" width="7" height="7" rx="2.5" fill="var(--acc)" opacity=".9"/>
+        <rect x="11" y="2" width="7" height="7" rx="2.5" fill="var(--acc)" opacity=".55"/>
+        <rect x="2" y="11" width="7" height="7" rx="2.5" fill="var(--acc)" opacity=".55"/>
+        <rect x="11" y="11" width="7" height="7" rx="2.5" fill="var(--acc)" opacity=".25"/>
       </svg>
-      <span>工具中心</span>
+      工具中心
     </div>
     <div id="tabs"></div>
     <div id="hdr-r">
-      <button class="hbtn" id="refresh-btn" onclick="hubRefresh()" title="重新拉取最新版本">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 3a5 5 0 0 0-4.546 2.914.5.5 0 0 1-.908-.417A6 6 0 0 1 8 2c1.468 0 2.81.555 3.823 1.465L13 2v4h-4l1.44-1.44A4.005 4.005 0 0 0 8 4a4 4 0 0 0-3.584 2.213.5.5 0 1 1-.896-.44A5 5 0 0 1 8 3zm4.948 6.364a.5.5 0 0 1 .908.416A6 6 0 0 1 8 14c-1.468 0-2.81-.555-3.823-1.465L3 14v-4h4l-1.44 1.44A4.005 4.005 0 0 0 8 12a4 4 0 0 0 3.584-2.213.5.5 0 0 1 .364-.423z"/>
-        </svg>
-        刷新最新版
+      <button class="hbtn icon-only" onclick="toggleSettings(event)" title="外观设置">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg>
       </button>
-      <button class="hbtn icon" onclick="showGuide()" title="使用说明 / 部署指南">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-          <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-        </svg>
+      <button class="hbtn icon-only" onclick="showGuide()" title="更新工具说明">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
       </button>
     </div>
   </div>
 
-  <!-- Main area -->
+  <!-- Main -->
   <div id="main">
-    <!-- Splash screen -->
-    <div id="splash">
-      <div id="splash-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="#e8a020">
-          <path d="M4 5h16v2H4zm0 4h16v2H4zm0 4h10v2H4zm0 4h7v2H4z"/>
-        </svg>
+    <!-- Update banner (shown when current tool has update) -->
+    <div id="update-banner">
+      <div id="update-banner-txt">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.45-.083.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+        <span id="banner-msg">此工具已更新，点击加载最新版本</span>
       </div>
-      <h2>工具中心</h2>
-      <p>选择上方工具开始使用。所有工具实时加载，管理员更新后点击「刷新最新版」即可同步最新内容。</p>
-      <div class="splash-hint">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="#e8a020">
-          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
-        </svg>
-        点击右上角「?」查看部署指南与更新方法
+      <div class="banner-btns">
+        <button class="banner-btn ghost" onclick="dismissBanner()">稍后</button>
+        <button class="banner-btn primary" onclick="bannerRefresh()">立即更新 ↑</button>
       </div>
     </div>
 
-    <!-- Loading -->
-    <div id="loader">
-      <div class="spin"></div>
-      <span id="loader-msg">加载中...</span>
-    </div>
+    <div id="frame-wrap">
+      <!-- Splash -->
+      <div id="splash">
+        <div class="splash-ring">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="var(--acc)"><path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5zm0 6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2zm0 6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z"/></svg>
+        </div>
+        <h2>选择工具开始使用</h2>
+        <p>点击下方工具卡片，或使用顶部标签切换。有新版本时页面会自动提示，无需等待通知。</p>
+        <div class="splash-grid" id="splash-grid"></div>
+      </div>
 
-    <!-- Error -->
-    <div id="errmsg">
-      <div class="err-ico">⚠</div>
-      <h3>工具加载失败</h3>
-      <p id="err-detail">无法找到工具文件，请确认文件已上传至 GitHub 仓库，且文件名与配置一致。</p>
+      <div id="loader"><div class="spin"></div><span id="loader-msg">加载中...</span></div>
+      <div id="errmsg"><div class="err-ico">⚠</div><h3>工具加载失败</h3><p id="err-detail"></p></div>
+      <iframe id="frm" title="工具内容" allow="clipboard-read; clipboard-write"></iframe>
     </div>
-
-    <!-- Tool iframe -->
-    <iframe id="frm" title="工具内容" allow="clipboard-read; clipboard-write"></iframe>
   </div>
 
   <!-- Status bar -->
   <div id="sbar">
     <div id="s-dot"></div>
     <span id="s-txt">就绪 · 选择工具开始使用</span>
-    <div id="s-right">
-      <span id="s-updated"></span>
-      <span>Hub v<span id="s-ver"></span></span>
+    <div id="s-meta">
+      <span id="s-time"></span>
+      <span id="s-check"></span>
+      <span>v<span id="s-ver"></span></span>
     </div>
   </div>
 </div>
 
-<!-- Setup Guide Overlay -->
+<!-- Settings panel -->
+<div id="settings-ovl" onclick="settingsOvlClick(event)">
+  <div id="settings-panel">
+    <div class="sp-hdr">外观设置<button class="sp-close" onclick="closeSettings()">✕</button></div>
+    <div class="sp-sec">
+      <div class="sp-label">颜色主题</div>
+      <div class="theme-row">
+        <button class="theme-btn" data-theme="light" onclick="setTheme('light')"><span class="theme-ico">☀</span>浅色</button>
+        <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')"><span class="theme-ico">🌙</span>深色</button>
+        <button class="theme-btn" data-theme="auto" onclick="setTheme('auto')"><span class="theme-ico">⚙</span>跟随系统</button>
+      </div>
+    </div>
+    <div class="sp-sec">
+      <div class="sp-label">主题色</div>
+      <div class="accent-row">
+        <div class="acc-swatch" data-a="blue"   style="background:#2563eb" onclick="setAccent('blue')"   title="蓝色"></div>
+        <div class="acc-swatch" data-a="teal"   style="background:#0d9488" onclick="setAccent('teal')"   title="青绿"></div>
+        <div class="acc-swatch" data-a="violet" style="background:#7c3aed" onclick="setAccent('violet')" title="紫色"></div>
+        <div class="acc-swatch" data-a="rose"   style="background:#e11d48" onclick="setAccent('rose')"   title="玫红"></div>
+        <div class="acc-swatch" data-a="amber"  style="background:#d97706" onclick="setAccent('amber')"  title="橙黄"></div>
+        <div class="acc-swatch" data-a="slate"  style="background:#475569" onclick="setAccent('slate')"  title="灰色"></div>
+      </div>
+    </div>
+    <div class="sp-sec">
+      <div class="sp-label">自动检查更新</div>
+      <div class="check-row">
+        <span>检查间隔</span>
+        <select id="interval-sel" onchange="changeInterval(this.value)">
+          <option value="60000">1 分钟</option>
+          <option value="180000" selected>3 分钟</option>
+          <option value="300000">5 分钟</option>
+          <option value="600000">10 分钟</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Guide -->
 <div id="guide-ovl" onclick="guideOvlClick(event)">
   <div id="guide">
-    <div id="g-hdr">
-      <h3>部署指南 &amp; 更新说明</h3>
-      <button class="close-btn" onclick="hideGuide()">✕</button>
-    </div>
-    <div id="g-body">
-      <div class="g-intro">
-        本工具中心部署在 GitHub Pages（免费），团队成员只需浏览器 + 访问链接，无需任何账号。
-        管理员在 GitHub 更新工具文件后，成员点击「刷新最新版」即可同步。
-      </div>
-
-      <div class="section-title">首次部署（仅做一次）</div>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-con">
-            <h4>注册 GitHub 账号 <span class="tag free">免费</span></h4>
-            <p>访问 <code>github.com</code> 注册，用于托管工具文件。团队成员不需要账号。</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-con">
-            <h4>创建新仓库</h4>
-            <p>登录后点击右上角 <code>+</code> → <code>New repository</code><br>
-            仓库名随意（如 <code>my-tools</code>），勾选 <strong style="color:var(--t1)">Public</strong>（公开），点击创建。</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-con">
-            <h4>上传全部文件 <span class="tag req">5个文件</span></h4>
-            <p>进入仓库页面 → 点击 <code>uploading an existing file</code> 或 <code>Add file → Upload files</code><br>
-            将以下 5 个文件一起拖入上传区域：</p>
-            <p style="margin-top:8px">
-              <code>index.html</code>
-              <code>审核系统完整版.html</code>
-              <code>售价核查工具.html</code>
-              <code>新品成功率计算工具.html</code>
-              <code>亚马逊周报生成器_v7.html</code>
-            </p>
-            <p style="margin-top:6px">上传后点击 <code>Commit changes</code> 保存。</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-con">
-            <h4>开启 GitHub Pages</h4>
-            <p>进入仓库 → 顶部 <code>Settings</code> → 左侧 <code>Pages</code><br>
-            在 <strong style="color:var(--t1)">Source</strong> 下拉选 <code>Deploy from a branch</code>，Branch 选 <code>main</code>，点击 <code>Save</code>。<br>
-            等待约 1 分钟，页面会出现你的访问链接：</p>
-            <div class="url-box">https://你的用户名.github.io/仓库名/</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-con">
-            <h4>分享链接给团队</h4>
-            <p>将上一步得到的链接发给所有团队成员，直接用浏览器打开即可，<strong style="color:var(--t1)">不需要注册任何账号</strong>。</p>
-          </div>
+    <div class="g-hdr"><h3>如何更新工具</h3><button class="sp-close" onclick="hideGuide()">✕</button></div>
+    <div class="g-body">
+      <div class="g-section">
+        <div class="g-stitle">自动更新通知机制</div>
+        <div class="update-list">
+          <div class="ul-item"><div class="ul-n">✓</div><p>工具中心每隔 <strong>3分钟</strong>（可在设置中调整）自动检查所有工具是否有新版本</p></div>
+          <div class="ul-item"><div class="ul-n">✓</div><p>检测到更新时，对应 <strong>标签会出现红点</strong>，当前工具顶部会出现 <strong>黄色横幅</strong> 提示</p></div>
+          <div class="ul-item"><div class="ul-n">✓</div><p>成员点击 <strong>「立即更新」</strong> 即可加载最新版本，无需管理员通知</p></div>
         </div>
       </div>
-
-      <div class="section-title" style="margin-top:24px">更新工具（日常操作）</div>
-      <div class="update-steps">
-        <div class="u-step"><div class="u-num">1</div><p>登录 GitHub → 进入仓库页面</p></div>
-        <div class="u-step"><div class="u-num">2</div><p>点击要更新的工具文件名，右上角点击铅笔图标 <strong>Edit</strong> 或直接 <strong>Upload files 重新上传</strong>同名新文件</p></div>
-        <div class="u-step"><div class="u-num">3</div><p>点击 <strong>Commit changes</strong> 保存</p></div>
-        <div class="u-step"><div class="u-num">4</div><p>等待约 30 秒 ~ 1 分钟，GitHub Pages 自动更新</p></div>
-        <div class="u-step"><div class="u-num">5</div><p>通知团队成员点击工具中心右上角 <strong>「刷新最新版」</strong> 按钮，即可加载新版本</p></div>
+      <div class="g-section">
+        <div class="g-stitle">管理员：更新工具文件（GitHub）</div>
+        <div class="update-list">
+          <div class="ul-item"><div class="ul-n">1</div><p>登录 <strong>github.com</strong> → 进入仓库 <code>Integration-tools-chaofan</code></p></div>
+          <div class="ul-item"><div class="ul-n">2</div><p>点击要更新的工具文件名 → 右上角点击 <strong>上传图标 ↑</strong> → 上传新版本文件</p></div>
+          <div class="ul-item"><div class="ul-n">3</div><p>底部点击 <strong>Commit changes</strong> 保存，等约 <strong>30秒~1分钟</strong> 生效</p></div>
+          <div class="ul-item"><div class="ul-n">4</div><p>成员打开工具中心后，<strong>系统自动检测并提示更新</strong>，无需手动通知</p></div>
+        </div>
       </div>
-
-      <div class="section-title" style="margin-top:24px">添加新工具</div>
-      <div class="update-steps">
-        <div class="u-step"><div class="u-num">1</div><p>将新工具 HTML 文件上传到 GitHub 仓库</p></div>
-        <div class="u-step"><div class="u-num">2</div><p>用文本编辑器打开 <strong>index.html</strong>，在顶部 <code>TOOLS</code> 数组中添加一行：<br><code>{ id: 5, name: '新工具名称', file: '新工具文件名.html' },</code></p></div>
-        <div class="u-step"><div class="u-num">3</div><p>重新上传修改后的 index.html 到 GitHub，提交后即生效</p></div>
+      <div class="g-section">
+        <div class="g-stitle">添加新工具</div>
+        <div class="update-list">
+          <div class="ul-item"><div class="ul-n">1</div><p>上传新工具 HTML 到仓库（<strong>Add file → Upload files</strong>）</p></div>
+          <div class="ul-item"><div class="ul-n">2</div><p>编辑 <strong>index.html</strong> 顶部 <code>TOOLS</code> 数组，新增一行：<br><code>{ id:5, name:'工具名', file:'文件名.html', emoji:'🔧' },</code></p></div>
+          <div class="ul-item"><div class="ul-n">3</div><p>Commit 保存，约1分钟后新工具自动出现在工具中心</p></div>
+        </div>
+      </div>
+      <div class="g-section">
+        <div class="g-stitle">你的工具中心链接</div>
+        <div class="url-box">https://hhyq39042-droid.github.io/Integration-tools-chaofan/</div>
       </div>
     </div>
-    <div id="g-footer">
-      <p>团队成员无需账号，只需浏览器打开链接即可使用</p>
-      <button class="btn-acc" onclick="hideGuide()">知道了</button>
-    </div>
+    <div class="g-footer"><p>团队成员无需账号，浏览器打开链接即可使用</p><button class="btn-acc" onclick="hideGuide()">关闭</button></div>
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
 <script>
-/* ─── State ───────────────────────────── */
-let curTool = null;
-let blobURL  = null;
-let toastTimer = null;
+/* ══ State ══ */
+let curTool=null, blobURL=null, toastTimer=null;
+let checkTimer=null, currentInterval=CHECK_INTERVAL;
+const updatedTools=new Set(); // tools with detected updates
+const loadedMod={}; // id → Last-Modified string when loaded
+const H=document.documentElement;
 
-/* ─── Init ───────────────────────────── */
-document.getElementById('s-ver').textContent = HUB_VERSION;
-buildTabs();
-setStatus('就绪 · 选择工具开始使用', '');
-
-/* ─── Tabs ───────────────────────────── */
-function buildTabs() {
-  const c = document.getElementById('tabs');
-  c.innerHTML = '';
-  TOOLS.forEach(t => {
-    const b = document.createElement('button');
-    b.className = 'tab' + (curTool === t.id ? ' active' : '');
-    b.dataset.id = t.id;
-    b.innerHTML = '<span class="tab-dot"></span>' + t.name;
-    b.onclick = () => openTool(t);
-    c.appendChild(b);
-  });
+/* ══ Prefs ══ */
+function loadPrefs(){
+  applyTheme(localStorage.getItem('hub-theme')||'light',false);
+  applyAccent(localStorage.getItem('hub-accent')||'blue',false);
+  const iv=localStorage.getItem('hub-interval');
+  if(iv){currentInterval=+iv;document.getElementById('interval-sel').value=iv}
 }
-
-function setActiveTab(id) {
-  document.querySelectorAll('.tab').forEach(b => {
-    b.classList.toggle('active', +b.dataset.id === id);
-  });
+function applyTheme(t,save=true){
+  const actual=t==='auto'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t;
+  H.setAttribute('data-theme',actual);H.setAttribute('data-theme-pref',t);
+  if(save)localStorage.setItem('hub-theme',t);
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('on',b.dataset.theme===t));
 }
-
-/* ─── Load Tool ───────────────────────── */
-async function openTool(t, forceRefresh) {
-  if (curTool === t.id && !forceRefresh) return;
-  curTool = t.id;
-  setActiveTab(t.id);
-  showLoader('正在加载「' + t.name + '」...');
-  setStatus('加载中...', '#e8a020');
-
-  try {
-    const url = './' + encodeURIComponent(t.file);
-    const opts = forceRefresh
-      ? { cache: 'reload', headers: { 'Cache-Control': 'no-cache' } }
-      : {};
-    const res = await fetch(url, opts);
-
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' — 文件未找到');
-
-    const html = await res.text();
-    renderTool(html, t.name);
-    const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('s-updated').textContent = '加载于 ' + now;
-    setStatus('当前：' + t.name, '#3fb950');
-    if (forceRefresh) toast('已加载最新版本', 'ok');
-
-  } catch (e) {
-    showError('无法加载「' + t.name + '」\n\n请确认文件 ' + t.file + ' 已上传到 GitHub 仓库，且文件名拼写与配置完全一致。\n\n错误详情：' + e.message);
-    setStatus('加载失败', '#f85149');
-  }
+function applyAccent(a,save=true){
+  H.setAttribute('data-accent',a);
+  if(save)localStorage.setItem('hub-accent',a);
+  document.querySelectorAll('.acc-swatch').forEach(s=>s.classList.toggle('on',s.dataset.a===a));
 }
-
-function renderTool(html, name) {
-  hideAll();
-  if (blobURL) { URL.revokeObjectURL(blobURL); blobURL = null; }
-  try {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    blobURL = URL.createObjectURL(blob);
-    const f = document.getElementById('frm');
-    f.src = blobURL;
-    f.style.display = 'block';
-  } catch {
-    const f = document.getElementById('frm');
-    f.removeAttribute('src');
-    f.srcdoc = html;
-    f.style.display = 'block';
-  }
+function setTheme(t){applyTheme(t);closeSettings()}
+function setAccent(a){applyAccent(a)}
+function changeInterval(v){
+  currentInterval=+v;
+  localStorage.setItem('hub-interval',v);
+  scheduleCheck();
+  toast('检查间隔已设为 '+document.getElementById('interval-sel').selectedOptions[0].text,'info');
 }
-
-/* ─── Refresh ─────────────────────────── */
-async function hubRefresh() {
-  if (!curTool) { toast('请先选择一个工具', 'info'); return; }
-  const t = TOOLS.find(x => x.id === curTool);
-  if (t) await openTool(t, true);
-}
-
-/* ─── UI helpers ──────────────────────── */
-function hideAll() {
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('loader').style.display = 'none';
-  document.getElementById('errmsg').style.display = 'none';
-  document.getElementById('frm').style.display = 'none';
-}
-
-function showLoader(msg) {
-  hideAll();
-  document.getElementById('loader-msg').textContent = msg || '加载中...';
-  document.getElementById('loader').style.display = 'flex';
-}
-
-function showError(msg) {
-  hideAll();
-  document.getElementById('err-detail').textContent = msg;
-  document.getElementById('errmsg').style.display = 'flex';
-}
-
-function setStatus(txt, color) {
-  document.getElementById('s-txt').textContent = txt;
-  document.getElementById('s-dot').style.background = color || '#484f58';
-}
-
-function toast(msg, type) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = type + ' show';
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-/* ─── Guide ───────────────────────────── */
-function showGuide() { document.getElementById('guide-ovl').style.display = 'flex'; }
-function hideGuide() { document.getElementById('guide-ovl').style.display = 'none'; }
-function guideOvlClick(e) { if (e.target === document.getElementById('guide-ovl')) hideGuide(); }
-
-/* ─── Keyboard ────────────────────────── */
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') hideGuide();
-  if (e.key === 'F5' || (e.metaKey && e.key === 'r')) { e.preventDefault(); hubRefresh(); }
-  if (e.altKey && e.key >= '1' && e.key <= '9') {
-    const t = TOOLS[+e.key - 1];
-    if (t) openTool(t);
-  }
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
+  if(H.getAttribute('data-theme-pref')==='auto')applyTheme('auto',false);
 });
+
+/* ══ Build UI ══ */
+document.getElementById('s-ver').textContent=HUB_VERSION;
+function buildUI(){
+  const tabs=document.getElementById('tabs'),grid=document.getElementById('splash-grid');
+  tabs.innerHTML='';grid.innerHTML='';
+  TOOLS.forEach(t=>{
+    // Tab
+    const b=document.createElement('button');
+    b.className='tab'+(curTool===t.id?' active':'')+(updatedTools.has(t.id)?' has-update':'');
+    b.dataset.id=t.id;
+    b.innerHTML='<span class="tab-dot"></span>'+t.name+'<span class="tab-badge"></span>';
+    b.onclick=()=>openTool(t);
+    tabs.appendChild(b);
+    // Splash card
+    const c=document.createElement('div');
+    c.className='splash-card'+(updatedTools.has(t.id)?' has-update':'');
+    c.innerHTML='<div class="sc-num">工具 '+t.id+'</div><div class="sc-name">'+t.emoji+' '+t.name+'</div><div class="sc-badge">有更新</div>';
+    c.onclick=()=>openTool(t);
+    grid.appendChild(c);
+  });
+}
+
+/* ══ Load tool ══ */
+async function openTool(t,force){
+  if(curTool===t.id&&!force)return;
+  curTool=t.id;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',+b.dataset.id===t.id));
+  hideBanner();
+  showLoader('正在加载「'+t.name+'」...');
+  setStatus('加载中...','#f59e0b');
+  try{
+    const res=await fetch('./'+encodeURIComponent(t.file),force?{cache:'reload'}:{});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    // Store Last-Modified for update detection
+    const lm=res.headers.get('Last-Modified')||res.headers.get('ETag')||'';
+    loadedMod[t.id]=lm;
+    localStorage.setItem('hub-lm-'+t.id, lm);
+    // Clear update flag for this tool
+    updatedTools.delete(t.id);
+    buildUI();
+    renderTool(await res.text());
+    const now=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('s-time').textContent='加载于 '+now;
+    setStatus('当前：'+t.name,'#22c55e');
+    if(force)toast('已加载最新版本','ok');
+  }catch(e){
+    showError('无法加载「'+t.name+'」\n\n请确认文件 '+t.file+' 已上传到 GitHub 仓库，且文件名与配置完全一致。\n\n错误：'+e.message);
+    setStatus('加载失败','#ef4444');
+  }
+}
+
+function renderTool(h){
+  hideAll();
+  if(blobURL){URL.revokeObjectURL(blobURL);blobURL=null;}
+  try{
+    blobURL=URL.createObjectURL(new Blob([h],{type:'text/html;charset=utf-8'}));
+    const f=document.getElementById('frm');f.src=blobURL;f.style.display='block';
+  }catch{
+    const f=document.getElementById('frm');f.removeAttribute('src');f.srcdoc=h;f.style.display='block';
+  }
+}
+
+/* ══ Update detection ══ */
+async function checkUpdates(silent=true){
+  const sc=document.getElementById('s-check');
+  sc.style.display='inline';sc.textContent='检查中...';
+  let found=0;
+  for(const t of TOOLS){
+    try{
+      // HEAD request with no-cache to get fresh headers
+      const res=await fetch('./'+encodeURIComponent(t.file)+'?_='+Date.now(),{method:'HEAD',cache:'no-store'});
+      if(!res.ok)continue;
+      const lm=res.headers.get('Last-Modified')||res.headers.get('ETag')||'';
+      const stored=localStorage.getItem('hub-lm-'+t.id)||'';
+      // If we have a stored value and it differs → update available
+      if(stored && lm && lm!==stored && !updatedTools.has(t.id)){
+        updatedTools.add(t.id);
+        found++;
+        // If this is the currently open tool, show banner
+        if(curTool===t.id) showBanner(t.name);
+      }
+    }catch{}
+  }
+  if(found>0){
+    buildUI();
+    if(silent){
+      const names=TOOLS.filter(t=>updatedTools.has(t.id)).map(t=>t.name);
+      toast('🔔 有工具更新：'+names.join('、'),'warn');
+    }
+  }
+  const now=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  sc.textContent='已检查 '+now;
+  setTimeout(()=>sc.style.display='none',3000);
+}
+
+function scheduleCheck(){
+  if(checkTimer)clearInterval(checkTimer);
+  checkTimer=setInterval(()=>checkUpdates(true),currentInterval);
+}
+
+/* ══ Banner ══ */
+function showBanner(name){
+  document.getElementById('banner-msg').textContent='「'+name+'」已更新，点击立即加载最新版本';
+  document.getElementById('update-banner').style.display='flex';
+}
+function hideBanner(){document.getElementById('update-banner').style.display='none'}
+function dismissBanner(){hideBanner();toast('稍后刷新时自动加载','info')}
+function bannerRefresh(){
+  hideBanner();
+  const t=TOOLS.find(x=>x.id===curTool);
+  if(t)openTool(t,true);
+}
+
+/* ══ UI helpers ══ */
+function hideAll(){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('loader').style.display='none';
+  document.getElementById('errmsg').style.display='none';
+  document.getElementById('frm').style.display='none';
+}
+function showLoader(msg){hideAll();document.getElementById('loader-msg').textContent=msg;document.getElementById('loader').style.display='flex'}
+function showError(msg){hideAll();document.getElementById('err-detail').textContent=msg;document.getElementById('errmsg').style.display='flex'}
+function setStatus(txt,c){document.getElementById('s-txt').textContent=txt;document.getElementById('s-dot').style.background=c||'var(--t3)'}
+function toast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=type+' show';
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),3200);
+}
+
+/* ══ Settings ══ */
+function toggleSettings(e){e.stopPropagation();const o=document.getElementById('settings-ovl');o.style.display=o.style.display==='flex'?'none':'flex'}
+function closeSettings(){document.getElementById('settings-ovl').style.display='none'}
+function settingsOvlClick(e){if(e.target===document.getElementById('settings-ovl'))closeSettings()}
+
+/* ══ Guide ══ */
+function showGuide(){document.getElementById('guide-ovl').style.display='flex'}
+function hideGuide(){document.getElementById('guide-ovl').style.display='none'}
+function guideOvlClick(e){if(e.target===document.getElementById('guide-ovl'))hideGuide()}
+
+/* ══ Visibility: check on tab refocus ══ */
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)checkUpdates(true);
+});
+
+/* ══ Keyboard ══ */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeSettings();hideGuide();}
+  if(e.altKey&&e.key>='1'&&e.key<='9'){const t=TOOLS[+e.key-1];if(t)openTool(t);}
+});
+
+/* ══ Boot ══ */
+loadPrefs();
+buildUI();
+// First check after 5s (let page settle), then on interval
+setTimeout(()=>checkUpdates(true),5000);
+scheduleCheck();
 </script>
 </body>
 </html>
