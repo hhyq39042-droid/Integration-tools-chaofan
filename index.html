@@ -50,28 +50,23 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang
 /* Main */
 #main{flex:1;position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
 
-/* ── Banners ── */
+/* Banners */
 .banner{display:none;align-items:center;justify-content:space-between;padding:10px 18px;flex-shrink:0;gap:12px}
 .banner.show{display:flex}
-
-/* Tool update banner — amber */
 #tool-banner{background:linear-gradient(90deg,#fef3c7,#fde68a);border-bottom:1px solid #f59e0b}
 [data-theme="dark"] #tool-banner{background:linear-gradient(90deg,rgba(217,119,6,.2),rgba(245,158,11,.12));border-color:rgba(245,158,11,.35)}
 #tool-banner .b-txt{font-size:13px;font-weight:600;color:#92400e;display:flex;align-items:center;gap:8px}
 [data-theme="dark"] #tool-banner .b-txt{color:#fcd34d}
-
-/* Hub update banner — blue/teal */
 #hub-banner{background:linear-gradient(90deg,#dbeafe,#bfdbfe);border-bottom:1px solid #3b82f6}
 [data-theme="dark"] #hub-banner{background:linear-gradient(90deg,rgba(37,99,235,.2),rgba(59,130,246,.12));border-color:rgba(59,130,246,.35)}
 #hub-banner .b-txt{font-size:13px;font-weight:600;color:#1e40af;display:flex;align-items:center;gap:8px}
 [data-theme="dark"] #hub-banner .b-txt{color:#93c5fd}
-
 .b-btns{display:flex;gap:8px;flex-shrink:0}
 .b-btn{padding:5px 13px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
 .b-btn.primary-amber{background:#d97706;color:#fff}.b-btn.primary-amber:hover{background:#b45309}
 .b-btn.primary-blue{background:#2563eb;color:#fff}.b-btn.primary-blue:hover{background:#1d4ed8}
 .b-btn.ghost{background:rgba(0,0,0,.06);color:inherit}.b-btn.ghost:hover{background:rgba(0,0,0,.11)}
-[data-theme="dark"] .b-btn.ghost{background:rgba(255,255,255,.08)}.b-btn.ghost:hover{background:rgba(255,255,255,.14)}
+[data-theme="dark"] .b-btn.ghost{background:rgba(255,255,255,.08)}
 
 #frame-wrap{flex:1;position:relative;overflow:hidden}
 
@@ -87,7 +82,6 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang
 .sc-name{font-size:13px;font-weight:600;color:var(--t1)}
 .sc-badge{display:none;position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:20px;background:#ef4444;color:#fff;font-size:10px;font-weight:700}
 .has-update .sc-badge{display:block}
-
 #loader{display:none;position:absolute;inset:0;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:14px;font-size:13px;color:var(--t2)}
 .spin{width:22px;height:22px;border:2.5px solid var(--bd2);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -95,6 +89,8 @@ html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'PingFang
 #errmsg .err-ico{font-size:40px}
 #errmsg h3{font-size:16px;font-weight:700;color:#e11d48}
 #errmsg p{font-size:13px;color:var(--t2);max-width:420px;line-height:1.7;white-space:pre-line}
+
+/* ★ 核心修复：iframe 直接用真实URL加载，保证 localStorage 数据持久 */
 #frm{display:none;width:100%;height:100%;border:none;background:#fff;position:absolute;inset:0}
 
 /* Status bar */
@@ -133,8 +129,7 @@ select{padding:5px 8px;border-radius:6px;border:1px solid var(--bd);background:v
 .g-hdr{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--bd);flex-shrink:0}
 .g-hdr h3{font-size:16px;font-weight:700}
 .g-body{padding:22px 24px;overflow-y:auto;flex:1}
-.g-section{margin-bottom:22px}
-.g-section:last-child{margin-bottom:0}
+.g-section{margin-bottom:22px}.g-section:last-child{margin-bottom:0}
 .g-stitle{font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
 .update-list{display:flex;flex-direction:column;gap:8px}
 .ul-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:8px}
@@ -147,6 +142,8 @@ code{background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:
 .g-footer p{font-size:12px;color:var(--t3)}
 .btn-acc{padding:8px 18px;border-radius:8px;border:none;background:var(--acc);color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:filter .15s}
 .btn-acc:hover{filter:brightness(1.1)}
+.notice-box{padding:10px 14px;border-radius:8px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);font-size:12px;color:#b91c1c;line-height:1.7;margin-bottom:14px}
+[data-theme="dark"] .notice-box{background:rgba(239,68,68,.1);color:#fca5a5}
 
 /* Toast */
 #toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);padding:9px 20px;border-radius:9px;font-size:12px;font-weight:600;pointer-events:none;opacity:0;transition:opacity .22s;z-index:999;white-space:nowrap}
@@ -171,8 +168,8 @@ const TOOLS = [
   { id:3, name:'新品成功率计算工具',   file:'新品成功率计算工具.html',   emoji:'📊' },
   { id:4, name:'亚马逊周报生成器',     file:'亚马逊周报生成器_v7.html', emoji:'📈' },
 ];
-const HUB_VERSION    = '1.3.0';
-const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
+const HUB_VERSION    = '1.4.0';
+const CHECK_INTERVAL = 3 * 60 * 1000;
 </script>
 
 <div id="app">
@@ -198,8 +195,7 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
   </div>
 
   <div id="main">
-
-    <!-- 横幅1：工具内容更新（amber） -->
+    <!-- 黄色横幅：工具内容更新 -->
     <div id="tool-banner" class="banner">
       <div class="b-txt">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.45-.083.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
@@ -210,8 +206,7 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
         <button class="b-btn primary-amber" onclick="toolBannerRefresh()">立即更新 ↑</button>
       </div>
     </div>
-
-    <!-- 横幅2：工具中心本身更新（blue） -->
+    <!-- 蓝色横幅：工具中心本身更新/新增工具 -->
     <div id="hub-banner" class="banner">
       <div class="b-txt">
         <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.009.927z"/></svg>
@@ -229,12 +224,13 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
           <svg width="30" height="30" viewBox="0 0 24 24" fill="var(--acc)"><path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5zm0 6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2zm0 6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z"/></svg>
         </div>
         <h2>选择工具开始使用</h2>
-        <p>点击下方工具卡片，或使用顶部标签切换。有新版本或新工具时，页面会自动弹出提示。</p>
+        <p>点击下方卡片或顶部标签切换工具。工具数据会在同一浏览器下自动保留，无需重复录入。</p>
         <div class="splash-grid" id="splash-grid"></div>
       </div>
       <div id="loader"><div class="spin"></div><span id="loader-msg">加载中...</span></div>
       <div id="errmsg"><div class="err-ico">⚠</div><h3>工具加载失败</h3><p id="err-detail"></p></div>
-      <iframe id="frm" title="工具内容" allow="clipboard-read; clipboard-write"></iframe>
+      <!-- iframe 用真实 URL 加载，同域名下 localStorage 数据完整保留 -->
+      <iframe id="frm" title="工具内容" allow="clipboard-read; clipboard-write; downloads"></iframe>
     </div>
   </div>
 
@@ -290,33 +286,36 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
 <!-- Guide -->
 <div id="guide-ovl" onclick="guideOvlClick(event)">
   <div id="guide">
-    <div class="g-hdr"><h3>更新说明</h3><button class="sp-close" onclick="hideGuide()">✕</button></div>
+    <div class="g-hdr"><h3>说明 & 更新指南</h3><button class="sp-close" onclick="hideGuide()">✕</button></div>
     <div class="g-body">
 
       <div class="g-section">
-        <div class="g-stitle">自动通知机制</div>
+        <div class="g-stitle">关于工具内置数据</div>
+        <div class="notice-box">
+          ⚠ 本地文件打开的数据（file://）与网页版数据（GitHub Pages）互相独立，无法迁移。<br>
+          首次通过工具中心使用时，需要在工具内重新上传或录入一次数据，此后数据会在同一浏览器下自动保留。
+        </div>
         <div class="update-list">
-          <div class="ul-item"><div class="ul-n">1</div><p>系统每隔 <strong>3分钟</strong> 自动检查所有工具及工具中心本身是否有更新</p></div>
-          <div class="ul-item"><div class="ul-n">2</div><p><strong>工具内容更新</strong> → 标签出现红点 + 顶部出现<span style="color:#d97706">黄色横幅</span> → 点击「立即更新」加载新版</p></div>
-          <div class="ul-item"><div class="ul-n">3</div><p><strong>新增工具 / 工具中心更新</strong> → 顶部出现<span style="color:#2563eb">蓝色横幅</span> → 点击「刷新页面」获取新工具标签</p></div>
-          <div class="ul-item"><div class="ul-n">✓</div><p>全程无需管理员手动通知，成员自行按提示操作即可</p></div>
+          <div class="ul-item"><div class="ul-n">✓</div><p>同一浏览器、同一链接打开 → 数据<strong>自动保留</strong>，无需重复操作</p></div>
+          <div class="ul-item"><div class="ul-n">✓</div><p>换浏览器或换电脑 → 需重新录入一次（数据存在各自浏览器中）</p></div>
+          <div class="ul-item"><div class="ul-n">✓</div><p>清除浏览器缓存/数据 → 数据会丢失，请谨慎操作</p></div>
         </div>
       </div>
 
       <div class="g-section">
-        <div class="g-stitle">更新已有工具</div>
+        <div class="g-stitle">自动更新通知</div>
+        <div class="update-list">
+          <div class="ul-item"><div class="ul-n">1</div><p>系统每隔 <strong>3分钟</strong> 自动检查所有工具及工具中心是否有更新</p></div>
+          <div class="ul-item"><div class="ul-n">2</div><p><strong>工具内容更新</strong> → 标签红点 + <span style="color:#d97706">黄色横幅</span> → 点「立即更新」</p></div>
+          <div class="ul-item"><div class="ul-n">3</div><p><strong>新增工具</strong> → <span style="color:#2563eb">蓝色横幅</span> → 点「刷新页面」获取新标签</p></div>
+        </div>
+      </div>
+
+      <div class="g-section">
+        <div class="g-stitle">更新已有工具（GitHub操作）</div>
         <div class="update-list">
           <div class="ul-item"><div class="ul-n">1</div><p>GitHub 仓库 → 点击工具文件 → 右上角 <strong>上传图标 ↑</strong> → 上传新版（文件名须相同）</p></div>
-          <div class="ul-item"><div class="ul-n">2</div><p>点击 <strong>Commit changes</strong>，等约30秒~1分钟生效，系统自动提示成员</p></div>
-        </div>
-      </div>
-
-      <div class="g-section">
-        <div class="g-stitle">新增工具</div>
-        <div class="update-list">
-          <div class="ul-item"><div class="ul-n">1</div><p>上传新工具 HTML 到仓库</p></div>
-          <div class="ul-item"><div class="ul-n">2</div><p>编辑 <strong>index.html</strong> 顶部 <code>TOOLS</code> 数组，新增一行后 Commit 保存</p></div>
-          <div class="ul-item"><div class="ul-n">3</div><p>系统检测到 index.html 变化 → 自动弹出<span style="color:#2563eb">蓝色横幅</span>提示成员刷新页面</p></div>
+          <div class="ul-item"><div class="ul-n">2</div><p>点击 <strong>Commit changes</strong>，等约30秒~1分钟，系统自动提示成员更新</p></div>
         </div>
       </div>
 
@@ -325,7 +324,7 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
         <div class="url-box">https://hhyq39042-droid.github.io/Integration-tools-chaofan/</div>
       </div>
     </div>
-    <div class="g-footer"><p>团队成员无需账号，浏览器打开链接即可</p><button class="btn-acc" onclick="hideGuide()">关闭</button></div>
+    <div class="g-footer"><p>团队成员无需账号，浏览器打开链接即可使用</p><button class="btn-acc" onclick="hideGuide()">关闭</button></div>
   </div>
 </div>
 
@@ -333,10 +332,9 @@ const CHECK_INTERVAL = 3 * 60 * 1000; // 检查间隔，默认3分钟
 
 <script>
 /* ══ State ══ */
-let curTool=null, blobURL=null, toastTimer=null, checkTimer=null;
+let curTool=null, toastTimer=null, checkTimer=null;
 let currentInterval=CHECK_INTERVAL;
 const updatedTools=new Set();
-const loadedMod={};
 const H=document.documentElement;
 
 /* ══ Prefs ══ */
@@ -389,78 +387,76 @@ function buildUI(){
   });
 }
 
-/* ══ Load tool ══ */
-async function openTool(t,force){
-  if(curTool===t.id&&!force)return;
+/* ══ Open tool — 直接用真实URL加载，localStorage 完整保留 ══ */
+function openTool(t, force){
+  if(curTool===t.id && !force) return;
   curTool=t.id;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',+b.dataset.id===t.id));
   dismissToolBanner();
   showLoader('正在加载「'+t.name+'」...');
   setStatus('加载中...','#f59e0b');
-  try{
-    const res=await fetch('./'+encodeURIComponent(t.file),force?{cache:'reload'}:{});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const lm=res.headers.get('Last-Modified')||res.headers.get('ETag')||'';
-    loadedMod[t.id]=lm;
-    localStorage.setItem('hub-lm-'+t.id,lm);
+
+  const f=document.getElementById('frm');
+  // ★ 关键修复：直接设置真实相对路径，不使用blob URL
+  // 这样工具运行在 https://域名/仓库名/工具文件名 这个固定地址下
+  // localStorage 数据与直接访问该工具URL时完全一致，可持久保留
+  const url='./'+encodeURIComponent(t.file)+(force?'?t='+Date.now():'');
+  f.onload=()=>{
+    hideAll();
+    f.style.display='block';
+    // 清除更新标记
     updatedTools.delete(t.id);
     buildUI();
-    renderTool(await res.text());
     const now=new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('s-time').textContent='加载于 '+now;
     setStatus('当前：'+t.name,'#22c55e');
     if(force)toast('已加载最新版本','ok');
-  }catch(e){
-    showError('无法加载「'+t.name+'」\n\n请确认文件 '+t.file+' 已上传到 GitHub 仓库，且文件名完全一致。\n\n错误：'+e.message);
+    f.onload=null; f.onerror=null;
+  };
+  f.onerror=()=>{
+    showError('无法加载「'+t.name+'」\n\n请确认文件 '+t.file+' 已上传到 GitHub 仓库，且文件名完全一致。');
     setStatus('加载失败','#ef4444');
-  }
-}
-function renderTool(h){
-  hideAll();
-  if(blobURL){URL.revokeObjectURL(blobURL);blobURL=null;}
-  try{
-    blobURL=URL.createObjectURL(new Blob([h],{type:'text/html;charset=utf-8'}));
-    const f=document.getElementById('frm');f.src=blobURL;f.style.display='block';
-  }catch{
-    const f=document.getElementById('frm');f.removeAttribute('src');f.srcdoc=h;f.style.display='block';
-  }
+    f.onload=null; f.onerror=null;
+  };
+  f.src=url;
 }
 
 /* ══ Update detection ══ */
 async function checkUpdates(){
   const sc=document.getElementById('s-check');
-  sc.style.display='inline';sc.textContent='检查中...';
+  sc.style.display='inline'; sc.textContent='检查中...';
   const alerts=[];
 
-  // 1. Check each tool file
+  // 检查各工具文件
   for(const t of TOOLS){
     try{
       const res=await fetch('./'+encodeURIComponent(t.file)+'?_='+Date.now(),{method:'HEAD',cache:'no-store'});
-      if(!res.ok)continue;
+      if(!res.ok) continue;
       const lm=res.headers.get('Last-Modified')||res.headers.get('ETag')||'';
       const stored=localStorage.getItem('hub-lm-'+t.id)||'';
-      if(stored&&lm&&lm!==stored&&!updatedTools.has(t.id)){
+      if(!stored){
+        localStorage.setItem('hub-lm-'+t.id, lm);
+      } else if(lm && lm!==stored && !updatedTools.has(t.id)){
         updatedTools.add(t.id);
+        localStorage.setItem('hub-lm-'+t.id, lm);
         alerts.push(t.name);
-        if(curTool===t.id)showToolBanner(t.name);
+        if(curTool===t.id) showToolBanner(t.name);
       }
     }catch{}
   }
 
-  // 2. Check index.html itself (for new tools / hub changes)
+  // 检查 index.html 本身（新增工具时会变）
   try{
     const res=await fetch('./index.html?_='+Date.now(),{method:'HEAD',cache:'no-store'});
     if(res.ok){
       const lm=res.headers.get('Last-Modified')||res.headers.get('ETag')||'';
       const stored=localStorage.getItem('hub-self-lm')||'';
       if(!stored){
-        // First visit — record and skip
         localStorage.setItem('hub-self-lm',lm);
-      } else if(lm&&lm!==stored){
-        // index.html changed → new tool or hub update
+      } else if(lm && lm!==stored){
         localStorage.setItem('hub-self-lm',lm);
         showHubBanner();
-        alerts.push('工具中心本身');
+        alerts.push('工具中心');
       }
     }
   }catch{}
@@ -476,10 +472,10 @@ async function checkUpdates(){
 
 function scheduleCheck(){
   if(checkTimer)clearInterval(checkTimer);
-  checkTimer=setInterval(checkUpdates,currentInterval);
+  checkTimer=setInterval(checkUpdates, currentInterval);
 }
 
-/* ══ Banners ══ */
+/* ══ Banner ══ */
 function showToolBanner(name){
   document.getElementById('tool-banner-msg').textContent='「'+name+'」已更新，建议加载最新版本';
   document.getElementById('tool-banner').classList.add('show');
@@ -488,7 +484,7 @@ function dismissToolBanner(){document.getElementById('tool-banner').classList.re
 function toolBannerRefresh(){
   dismissToolBanner();
   const t=TOOLS.find(x=>x.id===curTool);
-  if(t)openTool(t,true);
+  if(t) openTool(t,true);
 }
 function showHubBanner(){document.getElementById('hub-banner').classList.add('show')}
 function dismissHubBanner(){document.getElementById('hub-banner').classList.remove('show')}
@@ -498,12 +494,23 @@ function hideAll(){
   ['splash','loader','errmsg'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('frm').style.display='none';
 }
-function showLoader(msg){hideAll();document.getElementById('loader-msg').textContent=msg;document.getElementById('loader').style.display='flex'}
-function showError(msg){hideAll();document.getElementById('err-detail').textContent=msg;document.getElementById('errmsg').style.display='flex'}
-function setStatus(txt,c){document.getElementById('s-txt').textContent=txt;document.getElementById('s-dot').style.background=c||'var(--t3)'}
+function showLoader(msg){
+  hideAll();
+  document.getElementById('loader-msg').textContent=msg;
+  document.getElementById('loader').style.display='flex';
+}
+function showError(msg){
+  hideAll();
+  document.getElementById('err-detail').textContent=msg;
+  document.getElementById('errmsg').style.display='flex';
+}
+function setStatus(txt,c){
+  document.getElementById('s-txt').textContent=txt;
+  document.getElementById('s-dot').style.background=c||'var(--t3)';
+}
 function toast(msg,type){
   const el=document.getElementById('toast');
-  el.textContent=msg;el.className=type+' show';
+  el.textContent=msg; el.className=type+' show';
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),3500);
 }
@@ -518,7 +525,7 @@ function showGuide(){document.getElementById('guide-ovl').style.display='flex'}
 function hideGuide(){document.getElementById('guide-ovl').style.display='none'}
 function guideOvlClick(e){if(e.target===document.getElementById('guide-ovl'))hideGuide()}
 
-/* ══ Visibility: check on tab refocus ══ */
+/* ══ Visibility ══ */
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdates()});
 
 /* ══ Keyboard ══ */
@@ -530,7 +537,7 @@ document.addEventListener('keydown',e=>{
 /* ══ Boot ══ */
 loadPrefs();
 buildUI();
-setTimeout(checkUpdates, 5000); // 首次检查
+setTimeout(checkUpdates, 5000);
 scheduleCheck();
 </script>
 </body>
