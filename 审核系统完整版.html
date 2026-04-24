@@ -223,6 +223,18 @@ tr:hover td{background:rgba(0,0,0,.012);cursor:pointer}
         <div style="padding:8px 11px;background:#f5f3ff;border-radius:7px;font-size:10px;color:#6d28d9;line-height:1.8;border:1px solid #ede9fe">
           <b>补货记录：</b>首次上传历史汇总表 → 每次<b>采购审核</b>后自动追加 → <b>排单审核</b>时自动查最近补货填入三列 → 超2个月自动清除 &nbsp;
           <span style="color:#7c3aed">当前记录：<b id="restock-count">加载中…</b></span>
+          <span id="shared-sync-status" style="margin-left:8px;color:#059669;display:none"></span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;color:#7c3aed;font-weight:600">数据共享：</span>
+          <button onclick="exportRestockJSON()" style="padding:4px 10px;border-radius:5px;border:1px solid #7c3aed;background:#f5f3ff;color:#6d28d9;font-size:11px;font-weight:600;cursor:pointer" title="导出本地补货记录为JSON文件，上传到GitHub后所有成员共享">
+            ⬇ 导出数据（上传到GitHub共享）
+          </button>
+          <label style="padding:4px 10px;border-radius:5px;border:1px solid #0d9488;background:#f0fdfa;color:#0d9488;font-size:11px;font-weight:600;cursor:pointer" title="导入从旧版工具或其他来源的JSON备份文件">
+            ⬆ 导入JSON备份
+            <input type="file" accept=".json" onchange="importRestockJSON(this)" style="display:none">
+          </label>
+          <span id="restock-share-hint" style="font-size:10px;color:#94a3b8">启动时自动从仓库加载共享数据</span>
         </div>
       </div>
     </div>
@@ -1843,7 +1855,85 @@ async function loadCaches(){
   checkReady()
 }
 
-openDB().then(()=>loadCaches()).catch(e=>console.warn('IDB unavailable:',e))
+// ═══════════════════════════════════════════════════════
+//  数据共享：导出 / 导入 / 自动拉取
+// ═══════════════════════════════════════════════════════
+
+// 导出补货记录为 JSON 文件（本地下载，用于上传到 GitHub 共享）
+async function exportRestockJSON(){
+  try{
+    const records = await idbGet('restock_records')
+    if(!Array.isArray(records)||records.length===0){
+      alert('当前没有补货记录可以导出。');return
+    }
+    const payload = JSON.stringify({
+      exportedAt: Date.now(),
+      version: 1,
+      records: records
+    }, null, 2)
+    const blob = new Blob([payload],{type:'application/json'})
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'restock_data.json'
+    a.click()
+    setTimeout(()=>URL.revokeObjectURL(a.href),3000)
+    alert('✅ 已导出 restock_data.json（共 '+records.length+' 条）\n\n请将此文件上传到 GitHub 仓库根目录，团队成员下次打开工具时会自动加载共享数据。')
+  }catch(e){
+    alert('导出失败：'+e.message)
+  }
+}
+
+// 导入 JSON 备份文件
+async function importRestockJSON(input){
+  const file = input.files[0];if(!file)return
+  try{
+    const text = await file.text()
+    const obj = JSON.parse(text)
+    const records = Array.isArray(obj) ? obj : (Array.isArray(obj.records) ? obj.records : null)
+    if(!records){alert('JSON 格式不正确，请使用本工具导出的文件。');return}
+    // validate basic structure
+    const valid = records.filter(r=>r&&r.sku&&r.dateTs)
+    if(valid.length===0){alert('文件中没有有效的补货记录。');return}
+    const count = await mergeAndSaveRestock(valid)
+    alert('✅ 导入成功，当前共 '+count+' 条记录（已合并去重）')
+  }catch(e){
+    alert('导入失败：'+e.message)
+  }
+  input.value=''
+}
+
+// 启动时自动从 GitHub 仓库拉取共享补货数据（restock_data.json）
+async function fetchSharedRestockData(){
+  const statusEl = document.getElementById('shared-sync-status')
+  // 只在 http/https 环境下尝试（GitHub Pages），本地文件跳过
+  if(!location.protocol.startsWith('http')) return
+  try{
+    // 加时间戳防缓存
+    const res = await fetch('./restock_data.json?_='+Date.now(),{cache:'no-store'})
+    if(!res.ok) return // 文件不存在则静默跳过
+    const obj = await res.json()
+    const records = Array.isArray(obj) ? obj : (Array.isArray(obj.records) ? obj.records : null)
+    if(!records||records.length===0) return
+    const valid = records.filter(r=>r&&r.sku&&r.dateTs)
+    if(valid.length===0) return
+    const count = await mergeAndSaveRestock(valid)
+    if(statusEl){
+      const d = obj.exportedAt ? new Date(obj.exportedAt).toLocaleDateString('zh-CN') : ''
+      statusEl.textContent = '✓ 已同步共享数据'+(d?' ('+d+')':'')
+      statusEl.style.display='inline'
+    }
+    console.log('[共享数据] 已从 restock_data.json 合并 '+valid.length+' 条记录，当前共 '+count+' 条')
+  }catch(e){
+    // 静默失败，不影响正常使用
+    console.warn('[共享数据] 拉取失败（文件可能不存在）:', e.message)
+  }
+}
+
+// 原启动 + 拉取共享数据
+openDB().then(async()=>{
+  await loadCaches()
+  await fetchSharedRestockData()
+}).catch(e=>console.warn('IDB unavailable:',e))
 </script>
 </body>
 </html>
