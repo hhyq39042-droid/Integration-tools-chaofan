@@ -706,76 +706,109 @@ function s03(wb,D,dt){
 
 // ── Sheet 04 ─────────────────────────────────────────────────────────
 function s04(wb,D,dt){
-  const ws=wb.addWorksheet('04_二级分类环比');ws.views=[{state:'frozen',xSplit:1,ySplit:2,showGridLines:false}];const NC=14;
-  // Table 1: standalone
+  const ws=wb.addWorksheet('04_二级分类环比');ws.views=[{state:'frozen',xSplit:1,ySplit:2,showGridLines:false}];
+  const tot=D.msku2.length;
+  // ★ 上表 NC=18: 二级分类|MSKU数(W2)|MSKU占比|W2坑产比|W1销量|W2销量|销量变化|销量环比|W1销售额|W2销售额|W1毛利润|W2毛利润|毛利润环比|W1毛利率|W2毛利率|W1 ACOS|W2 ACOS|W2广告费
+  const NC=18;
   TR(ws,1,NC,'二级分类 周环比分析（跨一级分类合并汇总） | 仅展示 W2 周销量 > 7 的分类',C.DARK_NAVY,14,28);
-  HR(ws,2,['二级分类','MSKU数(W2)','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','销售额环比','W1毛利率','W2毛利率','W2 ACOS','W2广告费',''],C.DARK_NAVY);
-    // ★FIX: use raw row count per 二级分类 (matches template counting method)
+  HR(ws,2,['二级分类','MSKU数(W2)','MSKU占比','W2坑产比','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','W1毛利润','W2毛利润','毛利润环比','W1毛利率','W2毛利率','W1 ACOS','W2 ACOS','W2广告费'],C.DARK_NAVY);
   const alone=D.cat2sM.filter(r=>r['销量_W2']>getThr('fba','cat2_salesMin')).sort((a,b)=>b['销量_W2']-a['销量_W2']);
   let cur=3;
   alone.forEach((row,i)=>{
-    const cs=row['销量环比'];const cr=row['销售额环比'];
+    const cs=row['销量环比'];
     const bg=!na(cs)&&cs>0.2?C.GREEN_BG:(!na(cs)&&cs<-0.2?C.RED_BG:alt(i));
-    const rawMsku2=D.rawCntCat2_fba_W2.get(row['二级分类'])||0;
-    DR(ws,cur,[row['二级分类'],rawMsku2,fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),fu0(row['销售额_W1']),fu0(row['销售额_W2']),fcp(cr),fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fu0(row['广告花费_W2']),''],bg);
-    apCF(ws,cur,6,cs,false);apCF(ws,cur,9,cr,false);cur++;
+    const cnt=D.rawCntCat2_fba_W2.get(row['二级分类'])||0;
+    const kpv=cnt>0?row['订单毛利润_W2']/cnt:null; // W2坑产比=W2毛利润/MSKU数
+    const p1=row['订单毛利润_W1'],p2=row['订单毛利润_W2'],pc=chg(p2,p1);
+    DR(ws,cur,[
+      row['二级分类'],cnt,fp(sdiv(cnt,tot)),kpv!==null?fpr(kpv):'—',
+      fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),
+      fu0(row['销售额_W1']),fu0(row['销售额_W2']),
+      fpr(p1),fpr(p2),fcp(pc),
+      fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),
+      fp(row['ACOS_W1']),fp(row['ACOS_W2']),fu0(row['广告花费_W2'])
+    ],bg);
+    apCF(ws,cur,8,cs,false);apCF(ws,cur,13,pc,false);
+    if(kpv!==null){const kc=ws.getCell(cur,4);kc.font=fn(0,kpv>=0?C.GREEN_TXT:C.RED_TXT,10);}
+    cur++;
   });
   BLK(ws,cur,8);cur++;
-  // Table 2: with 一级分类
-  TR(ws,cur,NC,'二级分类 周环比分析（含一级分类） | 仅展示 W2 周销量 > 7 的分类',C.DARK_NAVY,14,28);cur++;
-  HR(ws,cur,['一级分类','二级分类','MSKU数(W2)','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','销售额环比','W1毛利率','W2毛利率','W2 ACOS','W2广告费'],C.DARK_NAVY);cur++;
-  // ★FIX: sort by 一级分类 W2 total sales desc, then 二级 W2 sales desc
+  // ★ 下表 NC2=19: 一级分类|二级分类|MSKU数(W2)|MSKU占比|W2坑产比|W1销量|W2销量|销量变化|销量环比|W1销售额|W2销售额|W1毛利润|W2毛利润|毛利润环比|W1毛利率|W2毛利率|W1 ACOS|W2 ACOS|W2广告费
+  const NC2=19;
+  TR(ws,cur,NC2,'二级分类 周环比分析（含一级分类） | 仅展示 W2 周销量 > 7 的分类',C.DARK_NAVY,14,28);cur++;
+  HR(ws,cur,['一级分类','二级分类','MSKU数(W2)','MSKU占比','W2坑产比','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','W1毛利润','W2毛利润','毛利润环比','W1毛利率','W2毛利率','W1 ACOS','W2 ACOS','W2广告费'],C.DARK_NAVY);cur++;
   const cat1MapFBA=new Map();D.cat1M.forEach(r=>{if(r['一级分类'])cat1MapFBA.set(r['一级分类'],r['销量_W2']||0);});
   const c2f=D.cat2M.filter(r=>r['销量_W2']>getThr('fba','cat2_salesMin')&&r['二级分类']).sort((a,b)=>{
     const d=(cat1MapFBA.get(b['一级分类'])||0)-(cat1MapFBA.get(a['一级分类'])||0);
     return d!==0?d:b['销量_W2']-a['销量_W2'];
   });
-  let pc=null,ai=0;
+  let pc2=null,ai=0;
   for(const row of c2f){
-    if(row['一级分类']!==pc){SEP(ws,cur,NC,`  ▶  ${row['一级分类']}`);cur++;pc=row['一级分类'];ai=0;}
-    const cs=row['销量环比'];const cr=row['销售额环比'];const bg=!na(cs)&&cs>0.2?C.GREEN_BG:(!na(cs)&&cs<-0.2?C.RED_BG:alt(ai));
-    // ★FIX: use [一级,二级] specific raw row count (matches template)
+    if(row['一级分类']!==pc2){SEP(ws,cur,NC2,`  ▶  ${row['一级分类']}`);cur++;pc2=row['一级分类'];ai=0;}
+    const cs=row['销量环比'];
+    const bg=!na(cs)&&cs>0.2?C.GREEN_BG:(!na(cs)&&cs<-0.2?C.RED_BG:alt(ai));
     const k12=row['一级分类']+'|'+row['二级分类'];
-    const mCnt12=D.rawCnt12_fba_W2.get(k12)||0;
-    DR(ws,cur,[row['一级分类'],row['二级分类'],mCnt12,fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),fu0(row['销售额_W1']),fu0(row['销售额_W2']),fcp(cr),fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fu0(row['广告花费_W2'])],bg);
-    apCF(ws,cur,7,cs,false);apCF(ws,cur,10,cr,false);cur++;ai++;
+    const cnt12=D.rawCnt12_fba_W2.get(k12)||0;
+    const kpc2=cnt12>0?row['订单毛利润_W2']/cnt12:null; // W2坑产比=W2毛利润/MSKU数
+    const p21=row['订单毛利润_W1'],p22=row['订单毛利润_W2'],pcc=chg(p22,p21);
+    DR(ws,cur,[
+      row['一级分类'],row['二级分类'],cnt12,fp(sdiv(cnt12,tot)),kpc2!==null?fpr(kpc2):'—',
+      fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),
+      fu0(row['销售额_W1']),fu0(row['销售额_W2']),
+      fpr(p21),fpr(p22),fcp(pcc),
+      fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),
+      fp(row['ACOS_W1']),fp(row['ACOS_W2']),fu0(row['广告花费_W2'])
+    ],bg);
+    apCF(ws,cur,9,cs,false);apCF(ws,cur,14,pcc,false);
+    if(kpc2!==null){const kc=ws.getCell(cur,5);kc.font=fn(0,kpc2>=0?C.GREEN_TXT:C.RED_TXT,10);}
+    cur++;ai++;
   }
-  CW(ws,[16,14,10,13,13,13,13,13,13,13,10,13,13,12]);
+  CW(ws,[12,16,13,10,14,10,13,13,13,12,13,12,12,13,10,10,13,13,12]);
 }
 
 // ── Sheet 05 ─────────────────────────────────────────────────────────
 function s05(wb,D,dt){
-  const ws=wb.addWorksheet('05_三级分类环比');const NC=15;
-  // Freeze: top 4 rows (2 for upper table title+header, 1 blank separator, 1 lower table header)
-  // Actually freeze at row4 col3 for the lower table; upper table has no category cols to freeze
+  const ws=wb.addWorksheet('05_三级分类环比');
   ws.views=[{state:'frozen',xSplit:0,ySplit:2,showGridLines:false}];
-
-  // ── Upper table: 三级分类汇总（跨一/二级聚合，W2销量>30，无一/二级分类列）──
-  const NC_S=13; // 13 cols: 三级分类 + MSKU数+MSKU占比 + W1/W2销量+变化+环比 + W2销售额+W2毛利率+W2ACOS+W2广告费+状态标记+备注
-  TR(ws,1,NC,'三级分类 周环比汇总（仅展示W2周销量>30的分类，跨一/二级合并汇总）',C.DARK_NAVY,12,28);
-  HR(ws,2,['三级分类','MSKU数','MSKU占比','W1销量','W2销量','销量变化','销量环比','W2销售额','W2毛利率','W2 ACOS','W2广告费','状态标记','备注'],C.DARK_NAVY);
   const tot=D.msku2.length;
-  // MSKU count per standalone 三级分类 (summed across all 一/二级 parents)
+
+  // ── 上表 NC_S=20: 三级分类|MSKU数|MSKU占比|W2坑产比|W1销量|W2销量|销量变化|销量环比|W1销售额|W2销售额|W1毛利润|W2毛利润|毛利润环比|W1毛利率|W2毛利率|W1 ACOS|W2 ACOS|W2广告费|状态标记|备注
+  const NC_S=20,NC_L=22;
+  TR(ws,1,NC_L,'三级分类 周环比汇总（仅展示W2周销量>30的分类，跨一/二级合并汇总）',C.DARK_NAVY,12,28);
+  HR(ws,2,['三级分类','MSKU数','MSKU占比','W2坑产比','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','W1毛利润','W2毛利润','毛利润环比','W1毛利率','W2毛利率','W1 ACOS','W2 ACOS','W2广告费','状态标记','备注'],C.DARK_NAVY);
+
   const mCnt3s=new Map();D.msku2.forEach(r=>{if(r.三级分类)mCnt3s.set(r.三级分类,(mCnt3s.get(r.三级分类)||0)+1);});
   const sf=v=>{if(v===null)return'—';if(v>=.3)return'🟢强势增长';if(v>=.1)return'🟡温和增长';if(v>=-0.3)return'🟠轻微下滑';return'🔴明显下滑';};
   const bf=st=>st.includes('🟢')?C.GREEN_BG:st.includes('🔴')?C.RED_BG:st.includes('🟠')?C.YELLOW_BG:null;
   const nf=row=>{const ns=[];if(!na(row['ACOS_W2'])&&row['ACOS_W2']>0.8)ns.push('⚠️高ACOS');if(!na(row['订单毛利润_W2'])&&row['订单毛利润_W2']<0)ns.push('⚠️亏损');else if(!na(row['订单毛利率_W2'])&&row['订单毛利率_W2']<0.1)ns.push('⚠️低利润');return ns.join(' | ');};
+
   const c3s=D.cat3sM.filter(r=>r['销量_W2']>30&&r['三级分类']).sort((a,b)=>b['销量_W2']-a['销量_W2']);
   let cur=3,ai=0;
   for(const row of c3s){
     const cs=row['销量环比'];const st=sf(cs);const bg=bf(st)||alt(ai);
     const cnt=mCnt3s.get(row['三级分类'])||0;
-    DR(ws,cur,[row['三级分类'],cnt,fp(sdiv(cnt,tot)),fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),fu0(row['销售额_W2']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fu0(row['广告花费_W2']),st,nf(row)],bg);
-    apCF(ws,cur,7,cs,false);cur++;ai++;
+    const kpv=cnt>0?row['订单毛利润_W2']/cnt:null;
+    const p1=row['订单毛利润_W1'],p2=row['订单毛利润_W2'],pc=chg(p2,p1);
+    DR(ws,cur,[
+      row['三级分类'],cnt,fp(sdiv(cnt,tot)),kpv!==null?fpr(kpv):'—',
+      fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),
+      fu0(row['销售额_W1']),fu0(row['销售额_W2']),
+      fpr(p1),fpr(p2),fcp(pc),
+      fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),
+      fp(row['ACOS_W1']),fp(row['ACOS_W2']),fu0(row['广告花费_W2']),
+      st,nf(row)
+    ],bg);
+    apCF(ws,cur,8,cs,false);apCF(ws,cur,13,pc,false);
+    if(kpv!==null){const kc=ws.getCell(cur,4);kc.font=fn(0,kpv>=0?C.GREEN_TXT:C.RED_TXT,10);}
+    cur++;ai++;
   }
 
-  // ── Blank separator row ──
+  // ── 空白分隔行
   ws.getRow(cur).height=10;cur++;
 
-  // ── Lower table: 三级分类明细（含一/二级，W2销量>20，按一/二级分组）──
-  const lowerStart=cur;
-  TR(ws,cur,NC,'三级分类 周环比分析（仅展示W2周销量>20的分类）',C.DARK_NAVY,12,28);cur++;
-  HR(ws,cur,['一级分类','二级分类','三级分类','MSKU数','MSKU占比','W1销量','W2销量','销量变化','销量环比','W2销售额','W2毛利率','W2 ACOS','W2广告费','状态标记','备注'],C.DARK_NAVY);cur++;
+  // ── 下表 NC_L=22: 一级分类|二级分类|三级分类|MSKU数|MSKU占比|W2坑产比|W1销量|W2销量|销量变化|销量环比|W1销售额|W2销售额|W1毛利润|W2毛利润|毛利润环比|W1毛利率|W2毛利率|W1 ACOS|W2 ACOS|W2广告费|状态标记|备注
+  TR(ws,cur,NC_L,'三级分类 周环比分析（仅展示W2周销量>20的分类）',C.DARK_NAVY,12,28);cur++;
+  HR(ws,cur,['一级分类','二级分类','三级分类','MSKU数','MSKU占比','W2坑产比','W1销量','W2销量','销量变化','销量环比','W1销售额','W2销售额','W1毛利润','W2毛利润','毛利润环比','W1毛利率','W2毛利率','W1 ACOS','W2 ACOS','W2广告费','状态标记','备注'],C.DARK_NAVY);cur++;
   const mCnt3=new Map();D.msku2.forEach(r=>{if(r.三级分类){const k=`${r.一级分类}|${r.二级分类}|${r.三级分类}`;mCnt3.set(k,(mCnt3.get(k)||0)+1);}});
   const s05cat1Map=new Map();D.cat1M.forEach(r=>{if(r['一级分类'])s05cat1Map.set(r['一级分类'],r['销量_W2']||0);});
   const s05cat2Map=new Map();D.cat2M.forEach(r=>{if(r['二级分类']){const k=r['一级分类']+'|'+r['二级分类'];s05cat2Map.set(k,r['销量_W2']||0);}});
@@ -787,33 +820,26 @@ function s05(wb,D,dt){
   let pg=null;ai=0;
   for(const row of c3){
     const gk=`${row['一级分类']}▷${row['二级分类']}`;
-    if(gk!==pg){SEP(ws,cur,NC,`  ▶  ${row['一级分类']}  ▷  ${row['二级分类']}`);cur++;pg=gk;ai=0;}
+    if(gk!==pg){SEP(ws,cur,NC_L,`  ▶  ${row['一级分类']}  ▷  ${row['二级分类']}`);cur++;pg=gk;ai=0;}
     const cs=row['销量环比'];const st=sf(cs);const bg=bf(st)||alt(ai);
     const k3=`${row['一级分类']}|${row['二级分类']}|${row['三级分类']}`;const cnt=mCnt3.get(k3)||0;
-    DR(ws,cur,[row['一级分类'],row['二级分类'],row['三级分类'],cnt,fp(sdiv(cnt,tot)),fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),fu0(row['销售额_W2']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fu0(row['广告花费_W2']),st,nf(row)],bg);
-    apCF(ws,cur,9,cs,false);cur++;ai++;
+    const kpv3=cnt>0?row['订单毛利润_W2']/cnt:null;
+    const p31=row['订单毛利润_W1'],p32=row['订单毛利润_W2'],pc3=chg(p32,p31);
+    DR(ws,cur,[
+      row['一级分类'],row['二级分类'],row['三级分类'],cnt,fp(sdiv(cnt,tot)),kpv3!==null?fpr(kpv3):'—',
+      fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fcp(cs),
+      fu0(row['销售额_W1']),fu0(row['销售额_W2']),
+      fpr(p31),fpr(p32),fcp(pc3),
+      fp(row['订单毛利率_W1']),fp(row['订单毛利率_W2']),
+      fp(row['ACOS_W1']),fp(row['ACOS_W2']),fu0(row['广告花费_W2']),
+      st,nf(row)
+    ],bg);
+    apCF(ws,cur,10,cs,false);apCF(ws,cur,15,pc3,false);
+    if(kpv3!==null){const kc=ws.getCell(cur,6);kc.font=fn(0,kpv3>=0?C.GREEN_TXT:C.RED_TXT,10);}
+    cur++;ai++;
   }
-  CW(ws,[16,8,13,10,13,13,13,12,10,13,12,14,18,14,18]);
+  CW(ws,[12,12,16,8,10,14,10,13,13,13,12,13,12,12,13,10,10,13,13,12,14,18]);
 }
-
-// ── MSKU table helper ─────────────────────────────────────────────────
-function mkMsku(ws,startRow,data,NC){
-  let cur=startRow,ai=0;
-  // Assign global ranks before grouping
-  data.forEach((row,i)=>row._rank=i+1);
-  const byG=data.reduce((m,r)=>{const g=r['小组']||0;if(!m.has(g))m.set(g,[]);m.get(g).push(r);return m;},new Map());
-  for(const[g,rows]of[...byG.entries()].sort((a,b)=>Number(a[0])-Number(b[0]))){
-    SEP(ws,cur,NC,`  ▶  小组 ${g}  （${rows.length} 条）`);cur++;
-    rows.forEach((row)=>{
-      const cs=row['销量环比'];const rv=row['销售额变化'];
-      DR(ws,cur,[row._rank,row['MSKU'],row['所属店铺']||'',`小组${row['小组']}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['销量_W1']),fi(row['销量_W2']),fi(row['销量变化']),fu0(row['销售额_W1']),fu0(row['销售额_W2']),fuc(rv),fpr(row['销售均价_W2']),fp(row['订单毛利率_W2']),fu0(row['订单毛利润_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fu0(row['广告花费_W2'])],alt(ai),15,[2,3]);
-      if(!na(row['订单毛利润_W2'])&&row['订单毛利润_W2']<0)ws.getCell(cur,16).font=fn(1,C.RED_TXT,10);
-      apCF(ws,cur,10,cs,false);cur++;ai++;
-    });
-  }
-  return cur;
-}
-
 function s06(wb,D,dt){
   const ws=wb.addWorksheet('06_销量上升TOP50');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=19;
   TR(ws,1,NC,`销量环比上升 TOP50 | W1:${dt.w1s}~${dt.w1e} vs W2:${dt.w2s}~${dt.w2e}`,C.GREEN_H,14,28);
