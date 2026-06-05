@@ -4,7 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>新品成功率计算工具</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>
+// ── Dynamic XLSX library loader with fallback ──────────────────
+// xlsx-js-style (styling support) → xlsx-js-style unpkg → standard xlsx cdnjs
+window._xlsxReady = false;
+window._xlsxCallbacks = [];
+window._xlsxOnReady = function(fn){ window._xlsxReady ? fn() : window._xlsxCallbacks.push(fn); };
+
+(function loadXLSX(srcs, i){
+  if(i >= srcs.length){
+    document.querySelectorAll('.lib-err').forEach(function(el){el.style.display='';});
+    return;
+  }
+  var s = document.createElement('script');
+  s.src = srcs[i];
+  s.onload = function(){
+    if(typeof XLSX !== 'undefined'){
+      window._xlsxReady = true;
+      window._xlsxCallbacks.forEach(function(fn){fn();});
+      window._xlsxCallbacks = [];
+      var ind = document.getElementById('lib-indicator');
+      if(ind) ind.style.display='none';
+    } else { loadXLSX(srcs, i+1); }
+  };
+  s.onerror = function(){ loadXLSX(srcs, i+1); };
+  document.head.appendChild(s);
+})([
+  'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
+  'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+], 0);
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -231,6 +261,15 @@ tbody tr:hover td{background:var(--bg2)}
     <!-- ═ SIDEBAR ═ -->
     <div>
       <div class="slabel">数据上传</div>
+      <!-- Library loading indicator -->
+      <div id="lib-indicator" style="background:var(--blue-bg);border-radius:var(--R);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--blue-text);display:flex;align-items:center;gap:8px">
+        <span style="animation:spin 1s linear infinite;display:inline-block">⟳</span>
+        <span>正在加载 Excel 解析库…</span>
+      </div>
+      <div class="lib-err errmsg" style="display:none;margin-bottom:10px">
+        ⚠ Excel 解析库加载失败，请检查网络连接后<strong>刷新页面</strong>重试
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
       <div class="uzone" id="lzone" onclick="$('li').click()">
         <div class="uz-lbl">① listing 新品数据表</div>
         <div class="uz-name" id="lname">点击上传 .xlsx 文件</div>
@@ -639,6 +678,10 @@ function parseDates(rows, col){
 
 function handleL(inp){
   const f=inp.files[0];if(!f)return;
+  if(typeof XLSX==='undefined'){
+    showErr('Excel 解析库尚未加载完成，请稍候再试，或刷新页面');
+    inp.value='';return;
+  }
   readX(f,wb=>{
     const sn=wb.SheetNames.find(n=>/listing|原表|数据/i.test(n))||wb.SheetNames[0];
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{raw:false,defval:''});
@@ -661,6 +704,10 @@ function handleL(inp){
 }
 function handleS(inp){
   const f=inp.files[0];if(!f)return;
+  if(typeof XLSX==='undefined'){
+    showErr('Excel 解析库尚未加载完成，请稍候再试，或刷新页面');
+    inp.value='';return;
+  }
   S.sFile=f.name;
   readX(f,wb=>{
     const sn=pickSalesSheet(wb);
@@ -856,6 +903,7 @@ function render(res){
 // ══════════ Export — fully styled Excel ══════════
 function doExport(){
   if(!S.res)return;
+  if(typeof XLSX==='undefined'){showErr('Excel 导出库未加载，请刷新页面重试');return;}
   const res=S.res, ml=(res.month?res.month.m:'?')+'月', note=$('anote').value.trim();
   const wb=XLSX.utils.book_new();
 
