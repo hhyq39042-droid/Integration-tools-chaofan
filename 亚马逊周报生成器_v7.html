@@ -597,7 +597,7 @@ function s00(wb,D,dt){
   const gd=D.grpM.sort((a,b)=>Number(a['小组'])-Number(b['小组']));
   gd.forEach((row,i)=>{
     const r=18+i;const cs=chg(row['销量_W2'],row['销量_W1']);const cr=chg(row['销售额_W2'],row['销售额_W1']);
-    DR(ws,r,[`小组${row['小组']}`,fi(row['订单量_W1']),fi(row['订单量_W2']),fcp(chg(row['订单量_W2'],row['订单量_W1'])),fi(row['销量_W1']),fi(row['销量_W2']),fcp(cs),fu0(row['销售额_W2']),fcp(cr),fu0(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fu0(row['广告花费_W2'])],alt(i));
+    DR(ws,r,[`小组${row['小组']}`,fi(row['销量_W1']),fi(row['销量_W2']),fcp(cs),fu0(row['销售额_W2']),fcp(cr),fu0(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fu0(row['广告花费_W2'])],alt(i));
     apCF(ws,r,4,cs,false);apCF(ws,r,6,cr,false);
   });
   const cr=18+gd.length;
@@ -615,92 +615,245 @@ function s00(wb,D,dt){
 // isFBM=true:  FBM (uses 净销售额, 执行人 from asinMerged)
 // ─────────────────────────────────────────────────────────────────────
 function writeOperatorBlock(ws, startRow, data, dt, isFBM, NC){
+  
+// ★ FBM专用（sfbm02调用）与小组环比完全相同的11个维度组: 订单数|销量|净销售额|销售均价|订单毛利润|毛利率|ACoAS|广告花费|广告销量占比|广告ACOS|广告CVR
   const salesKey=isFBM?'净销售额':'销售额';
   const adKey='广告花费', adSalesKey='广告销售额', profitKey='订单毛利润';
+  const opNC=2+11*3; // 35 cols
 
-  // Build per-operator aggregation
+  // ── 聚合所有维度 ─────────────────────────────────────────────────
   const opMap=new Map();
   for(const row of data){
     const person=row['执行人']||row['执行人_raw']||'';
     if(!person) continue;
     if(!opMap.has(person))opMap.set(person,{name:person,grp:row['小组']||0,
-      s1:0,s2:0,a1:0,a2:0,as1:0,as2:0,p1:0,p2:0});
+      o1:0,o2:0,   // 订单量
+      q1:0,q2:0,   // 销量
+      s1:0,s2:0,   // 净销售额
+      a1:0,a2:0,   // 广告花费
+      as1:0,as2:0, // 广告销售额
+      p1:0,p2:0,   // 订单毛利润
+      ao1:0,ao2:0, // 广告订单量
+      ak1:0,ak2:0  // 广告点击量
+    });
     const op=opMap.get(person);
-    op.s1+=(row[salesKey+'_W1']||0);op.s2+=(row[salesKey+'_W2']||0);
-    op.a1+=(row[adKey+'_W1']||0);op.a2+=(row[adKey+'_W2']||0);
-    op.as1+=(row[adSalesKey+'_W1']||0);op.as2+=(row[adSalesKey+'_W2']||0);
-    op.p1+=(row[profitKey+'_W1']||0);op.p2+=(row[profitKey+'_W2']||0);
+    op.o1+=(row['订单量_W1']||0);       op.o2+=(row['订单量_W2']||0);
+    op.q1+=(row['销量_W1']||0);         op.q2+=(row['销量_W2']||0);
+    op.s1+=(row[salesKey+'_W1']||0);    op.s2+=(row[salesKey+'_W2']||0);
+    op.a1+=(row[adKey+'_W1']||0);       op.a2+=(row[adKey+'_W2']||0);
+    op.as1+=(row[adSalesKey+'_W1']||0); op.as2+=(row[adSalesKey+'_W2']||0);
+    op.p1+=(row[profitKey+'_W1']||0);   op.p2+=(row[profitKey+'_W2']||0);
+    op.ao1+=(row['广告订单量_W1']||0);   op.ao2+=(row['广告订单量_W2']||0);
+    op.ak1+=(row['广告点击量_W1']||0);   op.ak2+=(row['广告点击量_W2']||0);
   }
   if(opMap.size===0)return;
   const ops=[...opMap.values()].sort((a,b)=>b.s2-a.s2);
 
   let cur=startRow;
-  const sLabel=isFBM?'销售额':'销售额';
+  const navy=isFBM?ffl(CF.NAVY):fl(C.DARK_NAVY);
+  const blue=isFBM?ffl(CF.BLUE):fl(C.MED_BLUE);
+  const wf=isFBM?ffn:fn; const bd=isFBM?FBD:BD;
 
-  // Section header
-  ws.mergeCells(cur,1,cur,NC);
+  // ── 分区标题 ─────────────────────────────────────────────────────
+  ws.mergeCells(cur,1,cur,opNC);
   const sh=ws.getCell(cur,1);
   sh.value='运营人员维度环比分析（含ACoAS）';
   sh.fill=isFBM?ffl(CF.BLUE):fl(C.MED_BLUE);
-  sh.font=isFBM?ffn(1,'FFFFFF',12):fn(1,'FFFFFF',12);
-  sh.alignment={horizontal:'left',vertical:'middle'};
-  sh.border=isFBM?FBD:BD;
+  sh.font=wf(1,'FFFFFF',12); sh.alignment={horizontal:'left',vertical:'middle'}; sh.border=bd;
   ws.getRow(cur).height=24;cur++;
 
-  // Exact headers per spec: W1/W2 prefix, last col = ACoAS环比
-  const hdrs=['运营','所属组','W1'+sLabel,'W2'+sLabel,'销售额环比',
-    'W1广告花费','W2广告花费','广告费环比','W1毛利润','W2毛利润','毛利润环比',
-    'W1 ACoAS','W2 ACoAS','ACoAS环比'];
-  hdrs.forEach((h,i)=>{
-    const c2=ws.getCell(cur,i+1);c2.value=h;
-    c2.fill=isFBM?ffl(CF.NAVY):fl(C.DARK_NAVY);
-    c2.font=isFBM?ffn(1,'FFFFFF',10):fn(1,'FFFFFF',10);
-    c2.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-    c2.border=isFBM?FBD:BD;
+  // ── Row1: 分组名（与小组环比完全相同的11个维度组）─────────────────
+  const opGroups=[
+    ['运营',1],['所属组',1],
+    ['订单数',3],['销量',3],['净销售额',3],['销售均价',3],
+    ['订单毛利润',3],['毛利率',3],['ACoAS',3],
+    ['广告花费',3],['广告销量占比',3],['广告ACOS',3],['广告CVR',3]
+  ];
+  let colPos=1;
+  for(const [gName,gSpan] of opGroups){
+    if(gSpan>1) ws.mergeCells(cur,colPos,cur,colPos+gSpan-1);
+    const gc=ws.getCell(cur,colPos); gc.value=gName;
+    gc.fill=navy; gc.font=wf(1,'FFFFFF',11);
+    gc.alignment={horizontal:'center',vertical:'middle'}; gc.border=bd;
+    colPos+=gSpan;
+  }
+  ws.getRow(cur).height=22;cur++;
+
+  // ── Row2: W1/W2/环比 子表头 ──────────────────────────────────────
+  const subHdrs=['运营','所属组',
+    'W1','W2','环比','W1','W2','环比','W1','W2','环比','W1','W2','环比',
+    'W1','W2','环比','W1','W2','环比','W1','W2','环比',
+    'W1','W2','环比','W1','W2','环比','W1','W2','环比','W1','W2','环比'];
+  subHdrs.forEach((h,i)=>{
+    const c2=ws.getCell(cur,i+1); c2.value=h;
+    c2.fill=blue; c2.font=wf(1,'FFFFFF',10);
+    c2.alignment={horizontal:'center',vertical:'middle'}; c2.border=bd;
   });
-  ws.getRow(cur).height=28;cur++;
+  ws.getRow(cur).height=18;cur++;
 
-  // Data rows
+  // ── 数据行 ────────────────────────────────────────────────────────
+  // 环比列位置(1-indexed): 5,8,11,14,17,20,23,26,29,32,35
+  // 负向指标(↓=绿): ACoAS(23), 广告花费(26), 广告销量占比(29), 广告ACOS(32), 广告CVR(35)
+  const chgCols=new Set([5,8,11,14,17,20,23,26,29,32,35]);
+  const negCols=new Set([23,26,29,32,35]);
+  const fpr2=v=>na(v)?'—':`$${Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}`;
+
   ops.forEach((op,i)=>{
-    const bg_even=isFBM?CF.W1:'DEEAF1';
-    const bg_odd=isFBM?CF.W2:'E8F4FD';
-    const bg=i%2===0?bg_even:bg_odd;
+    const bg=i%2===0?(isFBM?CF.W1:'DEEAF1'):(isFBM?CF.W2:'E8F4FD');
     const acoas1=sdiv(op.a1,op.s1), acoas2=sdiv(op.a2,op.s2);
-    const salesChg=chg(op.s2,op.s1),adChg=chg(op.a2,op.a1),profChg=chg(op.p2,op.p1);
-    const acoasChg=chg(acoas2,acoas1); // ACoAS环比
+    const avgP1=sdiv(op.s1,op.q1), avgP2=sdiv(op.s2,op.q2);
+    const mr1=sdiv(op.p1,op.s1), mr2=sdiv(op.p2,op.s2);
+    const adr1=sdiv(op.ao1,op.o1), adr2=sdiv(op.ao2,op.o2);   // 广告销量占比
+    const acos1=sdiv(op.a1,op.as1), acos2=sdiv(op.a2,op.as2); // 广告ACOS
+    const cvr1=sdiv(op.ao1,op.ak1), cvr2=sdiv(op.ao2,op.ak2); // 广告CVR
 
-    const fpr2=v=>na(v)?'—':`$${Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}`;
-    // 14 cols matching headers exactly
     const vals=[
       op.name, `小组${op.grp}`,
-      fpr2(op.s1), fpr2(op.s2), fcp(salesChg),
-      fpr2(op.a1), fpr2(op.a2), fcp(adChg),
-      fpr2(op.p1), fpr2(op.p2), fcp(profChg),
-      fp(acoas1), fp(acoas2), fcp(acoasChg)  // col14 = ACoAS环比
+      fi(op.o1), fi(op.o2), fcp(chg(op.o2,op.o1)),            // 订单数
+      fi(op.q1), fi(op.q2), fcp(chg(op.q2,op.q1)),            // 销量
+      fpr2(op.s1), fpr2(op.s2), fcp(chg(op.s2,op.s1)),        // 净销售额
+      fpr(avgP1), fpr(avgP2), fcp(chg(avgP2,avgP1)),            // 销售均价
+      fpr2(op.p1), fpr2(op.p2), fcp(chg(op.p2,op.p1)),        // 订单毛利润
+      fp(mr1), fp(mr2), fcp(chg(mr2,mr1)),                      // 毛利率
+      fp(acoas1), fp(acoas2), fcp(chg(acoas2,acoas1)),          // ACoAS
+      fpr2(op.a1), fpr2(op.a2), fcp(chg(op.a2,op.a1)),        // 广告花费
+      fp(adr1), fp(adr2), fcp(chg(adr2,adr1)),                  // 广告销量占比
+      fp(acos1), fp(acos2), fcp(chg(acos2,acos1)),              // 广告ACOS
+      fp(cvr1), fp(cvr2), fcp(chg(cvr2,cvr1))                   // 广告CVR
     ];
 
     vals.forEach((v,ci)=>{
-      const cell=ws.getCell(cur,ci+1);cell.value=v;
-      cell.fill=isFBM?ffl(bg):fl(bg);
-      cell.border=isFBM?FBD:BD;
-      // Color logic: isNeg cols = 广告费环比(col8) + ACoAS环比(col14)
-      const chgCols=[5,8,11,14]; // 环比列 (1-indexed)
-      const negCols=[8,14];       // 负向指标(越小越好)
+      const cell=ws.getCell(cur,ci+1); cell.value=v;
+      cell.fill=isFBM?ffl(bg):fl(bg); cell.border=bd;
       const col1=ci+1;
-      if(chgCols.includes(col1)&&typeof v==='string'&&v!=='—'&&v!=='-'){
-        const isUp=v.includes('▲');const isDn=v.includes('▼');
-        const isNeg=negCols.includes(col1);
-        const greenColor=isFBM?'375623':'375623';const redColor=isFBM?'9C0006':'9C0006';
-        if(isNeg){cell.font=isFBM?ffn(0,isUp?redColor:greenColor,10):fn(0,isUp?redColor:greenColor,10);}
-        else{cell.font=isFBM?ffn(0,isUp?greenColor:redColor,10):fn(0,isUp?greenColor:redColor,10);}
+      if(chgCols.has(col1)&&typeof v==='string'&&v!=='—'&&v!=='-'){
+        const isUp=v.includes('▲'); const isNeg=negCols.has(col1);
+        const green='375623'; const red='9C0006';
+        cell.font=wf(0,isNeg?(isUp?red:green):(isUp?green:red),10);
       } else {
-        cell.font=isFBM?ffn(0,'000000',10):fn(0,'000000',10);
+        cell.font=wf(0,'000000',10);
       }
       cell.alignment={horizontal:ci<2?'left':'center',vertical:'middle'};
     });
     ws.getRow(cur).height=18;cur++;
   });
 }
+// ★ FBA专用运营维度分析（与s01主表维度完全一致，FBA/FBM严格分离互不干扰）
+// 完整维度: 销量(3)|销售额(3)|均价(2)|毛利润(3)|毛利率(2)|ACoAS(2)|广告费(3)|广告占比(2)|ACOS(2)
+function writeOperatorBlockFBA(ws, startRow, data, NC){
+  const opNC=24; // 2固定 + 3+3+2+3+2+2+3+2+2=24列
+
+  // ── 聚合各维度 ─────────────────────────────────────────────────────
+  const opMap=new Map();
+  for(const row of data){
+    const person=row['执行人']||row['执行人_raw']||'';
+    if(!person) continue;
+    if(!opMap.has(person))opMap.set(person,{name:person,grp:row['小组']||0,
+      q1:0,q2:0,s1:0,s2:0,p1:0,p2:0,a1:0,a2:0,as1:0,as2:0,ao1:0,ao2:0,o1:0,o2:0});
+    const op=opMap.get(person);
+    op.q1+=(row['销量_W1']||0);           op.q2+=(row['销量_W2']||0);
+    op.s1+=(row['销售额_W1']||0);         op.s2+=(row['销售额_W2']||0);
+    op.p1+=(row['订单毛利润_W1']||0);     op.p2+=(row['订单毛利润_W2']||0);
+    op.a1+=(row['广告花费_W1']||0);       op.a2+=(row['广告花费_W2']||0);
+    op.as1+=(row['广告销售额_W1']||0);    op.as2+=(row['广告销售额_W2']||0);
+    op.ao1+=(row['广告订单量_W1']||0);    op.ao2+=(row['广告订单量_W2']||0);
+    op.o1+=(row['订单量_W1']||0);         op.o2+=(row['订单量_W2']||0);
+  }
+  if(opMap.size===0)return;
+  const ops=[...opMap.values()].sort((a,b)=>b.s2-a.s2);
+  let cur=startRow;
+
+  // ── 分区标题 ──────────────────────────────────────────────────────
+  ws.mergeCells(cur,1,cur,opNC);
+  const sh=ws.getCell(cur,1);
+  sh.value='运营人员维度环比分析（含ACoAS）';
+  sh.fill=fl(C.MED_BLUE);sh.font=fn(1,'FFFFFF',12);
+  sh.alignment={horizontal:'left',vertical:'middle'};sh.border=BD;
+  ws.getRow(cur).height=24;cur++;
+
+  // ── Row1: 维度分组（与s01主表维度和顺序完全对齐）──────────────────
+  // 有环比：销量(3)、销售额(3)、毛利润(3)、广告费(3)
+  // 无环比：均价(2)、毛利率(2)、ACoAS(2)、广告占比(2)、ACOS(2)
+  const opGroups=[
+    ['运营',1],['所属组',1],
+    ['销量',3],['销售额',3],['均价',2],
+    ['毛利润',3],['毛利率',2],['ACoAS',2],
+    ['广告费',3],['广告占比',2],['ACOS',2]
+  ];
+  let colPos=1;
+  for(const [gName,gSpan] of opGroups){
+    if(gSpan>1)ws.mergeCells(cur,colPos,cur,colPos+gSpan-1);
+    const gc=ws.getCell(cur,colPos);gc.value=gName;
+    gc.fill=fl(C.DARK_NAVY);gc.font=fn(1,'FFFFFF',11);
+    gc.alignment={horizontal:'center',vertical:'middle'};gc.border=BD;
+    colPos+=gSpan;
+  }
+  ws.getRow(cur).height=22;cur++;
+
+  // ── Row2: 子表头（严格对应s01主表列顺序）─────────────────────────
+  // 销量(W1 W2 环比) 销售额(W1 W2 环比) 均价(W1 W2) 毛利润(W1 W2 环比)
+  // 毛利率(W1 W2) ACoAS(W1 W2) 广告费(W1 W2 环比) 广告占比(W1 W2) ACOS(W1 W2)
+  ['运营','所属组',
+   'W1','W2','环比',      // 销量
+   'W1','W2','环比',      // 销售额
+   'W1','W2',             // 均价(无环比)
+   'W1','W2','环比',      // 毛利润
+   'W1','W2',             // 毛利率(无环比)
+   'W1','W2',             // ACoAS(无环比)
+   'W1','W2','环比',      // 广告费
+   'W1','W2',             // 广告占比(无环比)
+   'W1','W2'              // ACOS(无环比)
+  ].forEach((h,i)=>{
+    const c2=ws.getCell(cur,i+1);c2.value=h;
+    c2.fill=fl(C.MED_BLUE);c2.font=fn(1,'FFFFFF',10);
+    c2.alignment={horizontal:'center',vertical:'middle'};c2.border=BD;
+  });
+  ws.getRow(cur).height=18;cur++;
+
+  // ── 数据行（与子表头列顺序一一对应）─────────────────────────────
+  const fpr2=v=>na(v)?'—':`$${Number(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}`;
+  // 环比色列(1-indexed): 5(销量环比),8(销售额环比),13(毛利润环比),20(广告费环比)
+  // 负向: 列18(ACoAS W2→只标色环比列,无环比则不标) — 这里只有环比列标色
+  const chgCols=new Set([5,8,13,20]);
+  const negCols=new Set([]); // 对齐主表无特殊负向环比高亮
+
+  ops.forEach((op,i)=>{
+    const bg=i%2===0?'DEEAF1':'E8F4FD';
+    const avgP1=sdiv(op.s1,op.q1),avgP2=sdiv(op.s2,op.q2);
+    const mr1=sdiv(op.p1,op.s1),mr2=sdiv(op.p2,op.s2);
+    const acoas1=sdiv(op.a1,op.s1),acoas2=sdiv(op.a2,op.s2);
+    const adr1=sdiv(op.ao1,op.o1),adr2=sdiv(op.ao2,op.o2);
+    const acos1=sdiv(op.a1,op.as1),acos2=sdiv(op.a2,op.as2);
+
+    const vals=[
+      op.name,`小组${op.grp}`,
+      fi(op.q1),fi(op.q2),fcp(chg(op.q2,op.q1)),        // 销量 W1 W2 环比
+      fpr2(op.s1),fpr2(op.s2),fcp(chg(op.s2,op.s1)),    // 销售额 W1 W2 环比
+      fpr(avgP1),fpr(avgP2),                               // 均价 W1 W2 (无环比)
+      fpr2(op.p1),fpr2(op.p2),fcp(chg(op.p2,op.p1)),    // 毛利润 W1 W2 环比
+      fp(mr1),fp(mr2),                                     // 毛利率 W1 W2 (无环比)
+      fp(acoas1),fp(acoas2),                               // ACoAS W1 W2 (无环比)
+      fpr2(op.a1),fpr2(op.a2),fcp(chg(op.a2,op.a1)),    // 广告费 W1 W2 环比
+      fp(adr1),fp(adr2),                                  // 广告占比 W1 W2 (无环比)
+      fp(acos1),fp(acos2)                                 // ACOS W1 W2 (无环比)
+    ];
+    vals.forEach((v,ci)=>{
+      const cell=ws.getCell(cur,ci+1);cell.value=v;
+      cell.fill=fl(bg);cell.border=BD;
+      const col1=ci+1;
+      if(chgCols.has(col1)&&typeof v==='string'&&v!=='—'&&v!=='-'){
+        const isUp=v.includes('▲');
+        // 销量环比(5)毛利润环比(13)正向; 广告费环比(20)负向
+        const isNeg=(col1===20);
+        cell.font=fn(0,isNeg?(isUp?'9C0006':'375623'):(isUp?'375623':'9C0006'),10);
+      }else{cell.font=fn(0,'000000',10);}
+      cell.alignment={horizontal:ci<2?'left':'center',vertical:'middle'};
+    });
+    ws.getRow(cur).height=18;cur++;
+  });
+}
+
+
 function s01(wb,D,dt){
   const ws=wb.addWorksheet('01_小组环比');ws.views=[{state:'frozen',xSplit:1,ySplit:2,showGridLines:false}];const NC=23;
   TR(ws,1,NC,`各小组 周环比分析 | W1: ${dt.w1s}~${dt.w1e} vs W2: ${dt.w2s}~${dt.w2e}`,C.DARK_NAVY,14,28);
@@ -716,7 +869,7 @@ function s01(wb,D,dt){
   TOT(ws,tr,tvals);
   [[4,chg(t('销量','_W2'),t('销量','_W1')),false],[7,chg(t('销售额','_W2'),t('销售额','_W1')),false],[12,chg(t('订单毛利润','_W2'),t('订单毛利润','_W1')),false],[19,chg(t('广告花费','_W2'),t('广告花费','_W1')),true]].forEach(([c,v,n])=>{if(v!==null){ws.getCell(tr,c).font=fn(Math.abs(v)>0.05,cc(v,n),10);}});
   // 运营人员维度分析（紧接合计行后1行空白）
-  writeOperatorBlock(ws, tr+2, D.perFBA||D.merged, dt, false, NC);
+  writeOperatorBlockFBA(ws, tr+2, D.perFBA||D.merged, NC);
   CW(ws,[10,12,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13]);
 }
 
@@ -930,7 +1083,7 @@ function s08(wb,D,dt){
   let cur=3,pg=null;
   for(const row of ha){
     const g=row['小组']||0;if(g!==pg){SEP(ws,cur,NC,`  ▶  小组 ${g}`);cur++;pg=g;}
-    DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['销量_W2']),fu0(row['销售额_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),af(row['ACOS_W2'],row['订单毛利润_W2'])],C.PURPLE_BG,15,[1,2]);
+    DR(ws,cur,[row['MSKU'],row['店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['销量_W2']),fu0(row['销售额_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),af(row['ACOS_W2'],row['订单毛利润_W2'])],C.PURPLE_BG,15,[1,2]);
     ws.getCell(cur,11).font=fn(1,C.RED_TXT,10);cur++;
   }
   CW(ws,[18,22,7,10,12,14,8,12,13,14,10,13,12,10,30]);
@@ -945,7 +1098,7 @@ function s09(wb,D,dt){
   for(const row of ld){
     const g=row['小组']||0;if(g!==pg){SEP(ws,cur,NC,`  ▶  小组 ${g}`);cur++;pg=g;}
     const st=!na(row['订单毛利润_W1'])&&row['订单毛利润_W1']>0?'由盈转亏⚠️':'持续亏损🔴';
-    const tag09=D.tagsMap.get(row['MSKU'])||'/';DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',fi(row['销量_W2']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fpr(row['订单毛利润_W1']),tag09,st],C.RED_BG,15,[1,2]);
+    const tag09=D.tagsMap.get(row['MSKU'])||'/';DR(ws,cur,[row['MSKU'],row['店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',fi(row['销量_W2']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fpr(row['订单毛利润_W1']),tag09,st],C.RED_BG,15,[1,2]);
     ws.getCell(cur,9).font=fn(1,C.RED_TXT,10);ws.getCell(cur,15).font=fn(st.includes('盈转亏'),st.includes('盈转亏')?C.PURPLE_TXT:'000000',10);cur++;
   }
   CW(ws,[25,22,7,10,12,8,12,9,12,10,13,13,12,20,14]);
@@ -985,7 +1138,7 @@ function s11(wb,D,dt){
 }
 
 function s12(wb,D,dt){
-  const ws=wb.addWorksheet('12_广告效率分析');ws.views=[{state:'frozen',ySplit:4,showGridLines:false}];const NC=13;
+  const ws=wb.addWorksheet('12_广告效率分析');ws.views=[{state:'frozen',ySplit:4,showGridLines:false}];const NC=14;
   TR(ws,1,NC,`📈 广告效率全貌分析 | W2 (${dt.w2s}~${dt.w2e}) 有广告花费的产品`,C.DARK_NAVY,12,28);  // ★ 12pt
   TR(ws,2,NC,'广告ACOS区间分布汇总',C.MED_BLUE,12,20);
   HR(ws,3,['ACOS区间','MSKU数','总广告花费($)','总广告销售额($)','综合ACOS','占总广告费%','总销量',...Array(6).fill('')],C.MED_BLUE);
@@ -1001,19 +1154,70 @@ function s12(wb,D,dt){
   TOT(ws,10,['合计',D.merged.length,fu0(ts),fu0(tar),fp(sdiv(ts,tar)),'100.0%',fi(D.merged.reduce((a,r)=>a+r['销量_W2'],0)),...Array(6).fill('')]);
   BLK(ws,11,8);
   TR(ws,12,NC,'广告花费 TOP30 产品明细（W2）',C.MED_BLUE,12,20);
-  HR(ws,13,['排名','MSKU','所属店铺','小组','一级分类','二级分类','W2广告费','W2广告销售额','W2 ACOS','W2销量','W2销售额','W2毛利率','W2毛利润'],C.MED_BLUE);
+  HR(ws,13,['排名','MSKU','所属店铺','小组','一级分类','二级分类','三级分类','W2广告费','W2广告销售额','W2 ACOS','W2销量','W2销售额','W2毛利率','W2毛利润'],C.MED_BLUE);
   const t30=adAll.sort((a,b)=>b['广告花费_W2']-a['广告花费_W2']).slice(0,30).sort((a,b)=>Number(a['小组'])-Number(b['小组'])||b['广告花费_W2']-a['广告花费_W2']);
   let cur=14,pg=null,rk=1,ai=0;
   for(const row of t30){
     const g=row['小组']||0;if(g!==pg){SEP(ws,cur,NC,`  ▶  小组 ${g}`);cur++;pg=g;}
     const bg=!na(row['ACOS_W2'])&&row['ACOS_W2']>0.8?C.RED_BG:alt(ai);
-    DR(ws,cur,[rk++,row['MSKU'],row['所属店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fi(row['销量_W2']),fu0(row['销售额_W2']),fp(row['订单毛利率_W2']),fpr(row['订单毛利润_W2'])],bg,15,[2,3]);
+    DR(ws,cur,[rk++,row['MSKU'],row['所属店铺']||'',`小组${g}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fi(row['销量_W2']),fu0(row['销售额_W2']),fp(row['订单毛利率_W2']),fpr(row['订单毛利润_W2'])],bg,15,[2,3]);
     if(!na(row['ACOS_W2'])&&row['ACOS_W2']>0.8)ws.getCell(cur,9).font=fn(1,C.RED_TXT,10);cur++;ai++;
   }
   // ★ Exact col widths from template
-  CW(ws,[13.125,78.375,22,7,10,12,13,14,10,9,12,10,12]);
+  CW(ws,[13.125,78.375,22,7,10,12,14,13,14,10,9,12,10,12]);
 }
 
+
+// ── 按(MSKU+店铺)聚合：保留站点维度，用于s13按站点拆分分析 ────────────────
+function aggMskuStore(rows){
+  const map=new Map();
+  for(const r of rows){
+    const m=r['MSKU'];const s=r['店铺']||'';if(!m)continue;
+    const key=`${m}|||${s}`;
+    if(!map.has(key))map.set(key,{MSKU:m,店铺:s,小组:r['小组']||'',一级分类:r['一级分类']||'',二级分类:r['二级分类']||'',三级分类:r['三级分类']||'',执行人:r['执行人_raw']||'',...Object.fromEntries(SCOLS.map(c=>[c,0]))});
+    const a=map.get(key);
+    for(const c of SCOLS)a[c]+=(parseFloat(r[c])||0);
+  }
+  return Array.from(map.values()).map(m=>{
+    m.销售均价=sdiv(m.销售额,m.销量);m.订单毛利率=sdiv(m.订单毛利润,m.销售额);
+    m.ACOS=sdiv(m.广告花费,m.广告销售额);m.可售天数=m.销量>0?sdiv(m.可用库存*7,m.销量):null;
+    return m;
+  });
+}
+function mergeStoreW(s1,s2){
+  const m=new Map();
+  // ★ 全部使用bracket记法, 确保中文字段名在所有环境下正常工作
+  s1.forEach(r=>{
+    const msku=r['MSKU'],shop=r['店铺']||'',grp=r['小组']||'',c1=r['一级分类']||'',c2=r['二级分类']||'',c3=r['三级分类']||'';
+    const k=msku+'|||'+shop;
+    const obj={};
+    obj['MSKU']=msku;obj['店铺']=shop;obj['所属店铺']=shop; // 双key保险
+    obj['小组']=grp;obj['一级分类']=c1;obj['二级分类']=c2;obj['三级分类']=c3;
+    SCOLS.forEach(c=>{obj[c+'_W1']=r[c]||0;obj[c+'_W2']=0;});
+    m.set(k,obj);
+  });
+  s2.forEach(r=>{
+    const msku=r['MSKU'],shop=r['店铺']||'',grp=r['小组']||'',c1=r['一级分类']||'',c2=r['二级分类']||'',c3=r['三级分类']||'';
+    const k=msku+'|||'+shop;
+    if(!m.has(k)){
+      const obj={};
+      obj['MSKU']=msku;obj['店铺']=shop;obj['所属店铺']=shop;
+      obj['小组']=grp;obj['一级分类']=c1;obj['二级分类']=c2;obj['三级分类']=c3;
+      SCOLS.forEach(c=>{obj[c+'_W1']=0;obj[c+'_W2']=0;});
+      m.set(k,obj);
+    }
+    const a=m.get(k);SCOLS.forEach(c=>{a[c+'_W2']=r[c]||0;});
+  });
+  return Array.from(m.values()).map(r=>{
+    r['销售额_W2']=r['销售额_W2']||0;r['销量_W2']=r['销量_W2']||0;
+    r['销售均价_W2']=sdiv(r['销售额_W2'],r['销量_W2']);
+    r['订单毛利率_W2']=sdiv(r['订单毛利润_W2'],r['销售额_W2']);
+    r['ACOS_W2']=sdiv(r['广告花费_W2'],r['广告销售额_W2']);
+    r['可售天数_W2']=r['销量_W2']>0?sdiv((r['可用库存_W2']||0)*7,r['销量_W2']):null;
+    r['销量环比']=chg(r['销量_W2'],r['销量_W1']);
+    return r;
+  });
+}
 function brandBlk(ws,cur,brand,D,NC,dt){
   const bd=D.merged.filter(r=>r['一级分类']===brand);const bw2=D.msku2.filter(r=>r['一级分类']===brand);
   ws.mergeCells(cur,1,cur,NC);const bc=ws.getCell(cur,1);bc.value=`◆ ${brand} 品类总览`;bc.fill=fl(C.TEAL);bc.font=fn(1,'FFFFFF',13);bc.alignment=al('center');bc.border=BD;ws.getRow(cur).height=22;cur++;
@@ -1032,25 +1236,30 @@ function brandBlk(ws,cur,brand,D,NC,dt){
   bw2.forEach(r=>{const k=r['二级分类']||'其他';if(c2.has(k))c2.get(k).msku++;});
   [...c2.values()].sort((a,b)=>b.sq-a.sq).forEach((row,i)=>{DR(ws,cur,[row['二级分类'],row.msku,fi(row.sq),fp(sdiv(row.sq,ts)),fu0(row.rev),fu0(row.pro),fp(sdiv(row.pro,row.rev)),fu0(row.ad),fp(sdiv(row.ad,row.adr)),...Array(NC-9).fill('')],alt(i));cur++;});
   BLK(ws,cur,6);cur++;
-  const pot=bd.filter(r=>r['销量_W2']>=5&&!na(r['订单毛利率_W2'])&&r['订单毛利率_W2']>=0.15&&r['销量_W2']>r['销量_W1']).sort((a,b)=>b['销量_W2']-a['销量_W2']);
-  ws.mergeCells(cur,1,cur,NC);const pc=ws.getCell(cur,1);pc.value=` 🌟 ${brand} 潜力产品（W2销量≥5 且 毛利率≥15% 且 销量环比正增长）`;pc.fill=fl(C.GREEN_H);pc.font=fn(1,'FFFFFF',11);pc.alignment=al('left');pc.border=BD;ws.getRow(cur).height=20;cur++;
-  HR(ws,cur,['MSKU','所属店铺','小组','二级分类','三级分类','W1销量','W2销量','销量环比','W2销售额','W2均价','W2毛利润','W2毛利率','W2广告费','W2 ACOS','W2可售天数','📌建议'],C.GREEN_H);cur++;
+  // ★ 按站点拆分：使用storeMerged（每MSKU×每店铺独立行）
+  const bdStore=D.storeMerged.filter(r=>r['一级分类']===brand);
+  const pot=bdStore.filter(r=>r['销量_W2']>=5&&!na(r['订单毛利率_W2'])&&r['订单毛利率_W2']>=0.15&&r['销量_W2']>r['销量_W1']).sort((a,b)=>b['销量_W2']-a['销量_W2']);
+  ws.mergeCells(cur,1,cur,NC);const pc=ws.getCell(cur,1);pc.value=` 🌟 ${brand} 潜力产品（W2销量≥5 且 毛利率≥15% 且 销量环比正增长）| 按站点拆分`;pc.fill=fl(C.GREEN_H);pc.font=fn(1,'FFFFFF',11);pc.alignment=al('left');pc.border=BD;ws.getRow(cur).height=20;cur++;
+  HR(ws,cur,['MSKU','所属店铺','小组','一级分类','二级分类','三级分类','W1销量','W2销量','销量环比','W2销售额','W2均价','W2毛利润','W2毛利率','W2广告费','W2 ACOS','W2可售天数','📌建议'],C.GREEN_H);cur++;
   const advP=r=>{const d=r['可售天数_W2'];const a=r['ACOS_W2'];const s=r['销量_W2'];const cv=r['销量环比'];if(!na(d)&&d<14)return'⚠️低库存，立即备货起量';if(!na(a)&&a>0.8)return'优化广告降ACOS';if(!na(a)&&a<0.3)return'加大广告预算起量';if(s>20)return'高潜力重点孵化🌟';if(!na(cv)&&cv>1)return'高速增长，关注备货';return'保持趋势，监控竞争';};
-  pot.forEach((row,i)=>{DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${row['小组']}`,row['二级分类']||'',row['三级分类']||'',fi(row['销量_W1']),fi(row['销量_W2']),fcp(row['销量环比']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fd(row['可售天数_W2']),advP(row)],i%2===0?C.GREEN_BG:C.WHITE,15,[1,2]);cur++;});
+  pot.forEach((row,i)=>{DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${row['小组']}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['销量_W1']),fi(row['销量_W2']),fcp(row['销量环比']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fd(row['可售天数_W2']),advP(row)],i%2===0?C.GREEN_BG:C.WHITE,15,[1,2]);cur++;});
   BLK(ws,cur,6);cur++;
-  const risk=bd.filter(r=>r['订单毛利润_W2']<-5||(!na(r['ACOS_W2'])&&r['ACOS_W2']>0.8)).sort((a,b)=>b['销量_W2']-a['销量_W2']);
-  ws.mergeCells(cur,1,cur,NC);const rc=ws.getCell(cur,1);rc.value=` ⚠️ ${brand} 风险产品（W2亏损>$5 或 ACOS>80% 的产品）`;rc.fill=fl(C.RED_H);rc.font=fn(1,'FFFFFF',11);rc.alignment=al('left');rc.border=BD;ws.getRow(cur).height=20;cur++;
-  HR(ws,cur,['MSKU','所属店铺','小组','二级分类','三级分类','W1销量','W2销量','销量环比','W2销售额','W2均价','W2毛利润','W2毛利率','W2广告费','W2 ACOS','W2可售天数','⚠️问题类型'],C.RED_H);cur++;
+  const risk=bdStore.filter(r=>r['订单毛利润_W2']<-5||(!na(r['ACOS_W2'])&&r['ACOS_W2']>0.8)).sort((a,b)=>b['销量_W2']-a['销量_W2']);
+  ws.mergeCells(cur,1,cur,NC);const rc=ws.getCell(cur,1);rc.value=` ⚠️ ${brand} 风险产品（W2亏损>$5 或 ACOS>80%）| 按站点拆分`;rc.fill=fl(C.RED_H);rc.font=fn(1,'FFFFFF',11);rc.alignment=al('left');rc.border=BD;ws.getRow(cur).height=20;cur++;
+  HR(ws,cur,['MSKU','所属店铺','小组','一级分类','二级分类','三级分类','W1销量','W2销量','销量环比','W2销售额','W2均价','W2毛利润','W2毛利率','W2广告费','W2 ACOS','W2可售天数','⚠️问题类型'],C.RED_H);cur++;
   const rtf=r=>{const t=[];if(r['订单毛利润_W2']<-5)t.push('亏损');if(!na(r['ACOS_W2'])&&r['ACOS_W2']>0.8)t.push(`高ACOS(${(r['ACOS_W2']*100).toFixed(1)}%)`);if(!na(r['订单毛利率_W2'])&&r['订单毛利率_W2']<0.05)t.push('极低利润');return t.join(' | ');};
-  risk.forEach((row,i)=>{DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${row['小组']}`,row['二级分类']||'',row['三级分类']||'',fi(row['销量_W1']),fi(row['销量_W2']),fcp(row['销量环比']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fd(row['可售天数_W2']),rtf(row)],i%2===0?C.RED_BG:C.PURPLE_BG,15,[1,2]);cur++;});
+  risk.forEach((row,i)=>{DR(ws,cur,[row['MSKU'],row['所属店铺']||'',`小组${row['小组']}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['销量_W1']),fi(row['销量_W2']),fcp(row['销量环比']),fu0(row['销售额_W2']),fpr(row['销售均价_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),fpr(row['广告花费_W2']),fp(row['ACOS_W2']),fd(row['可售天数_W2']),rtf(row)],i%2===0?C.RED_BG:C.PURPLE_BG,15,[1,2]);cur++;});
   BLK(ws,cur,12);cur++;
   return cur;
 }
 
 function s13(wb,D,dt){
-  const ws=wb.addWorksheet('13_BYJ_ZJ重点分析');ws.views=[{state:'frozen',ySplit:1,showGridLines:false}];const NC=16;
-  TR(ws,1,NC,`🎯 BYJ & ZJ 品类深度分析 | 潜力产品挖掘 | W2: ${dt.w2s}~${dt.w2e}`,C.DARK_NAVY,14,28);
-  let cur=2;cur=brandBlk(ws,cur,'BYJ',D,NC,dt);cur=brandBlk(ws,cur,'ZJ',D,NC,dt);
+  const ws=wb.addWorksheet('13_FQ_BYJ_ZJ重点分析');ws.views=[{state:'frozen',ySplit:1,showGridLines:false}];const NC=17;
+  TR(ws,1,NC,`🎯 FQ & BYJ & ZJ 品类深度分析 | 父亲节&毕业季专题 | W2: ${dt.w2s}~${dt.w2e}`,C.DARK_NAVY,14,28);
+  let cur=2;
+  cur=brandBlk(ws,cur,'FQ',D,NC,dt);
+  cur=brandBlk(ws,cur,'BYJ',D,NC,dt);
+  cur=brandBlk(ws,cur,'ZJ',D,NC,dt);
   CW(ws,[18,22,7,12,14,8,13,9,12,9,12,10,13,13,13,24]);
 }
 
@@ -1413,7 +1622,7 @@ function sfbm01(wb,D,dt){
 
 // ── FBM Sheet 02: 小组环比 ────────────────────────────────────────────
 function sfbm02(wb,D,dt){
-  const ws=wb.addWorksheet('02_小组环比');ws.views=[{state:'frozen',ySplit:3,showGridLines:false}];const NC=34;
+  const ws=wb.addWorksheet('02_小组环比');ws.views=[{state:'frozen',ySplit:3,showGridLines:false}];const NC=35;
   ws.mergeCells(1,1,1,NC);const t=ws.getCell(1,1);t.value=`小组环比分析 | W1: ${dt.w1full} → W2: ${dt.w2full}`;t.fill=ffl(CF.NAVY);t.font=ffn(1,'FFFFFF',13);t.alignment=al('left');t.border=FBD;ws.getRow(1).height=28;
   const g2=[['小组',1],['订单数',3],['销量',3],['净销售额',3],['销售均价',3],['订单毛利润',3],['毛利率',3],['ACoAS',3],['广告花费',3],['广告销量占比',3],['广告ACOS',3],['广告CVR',3]];
   fHdr(ws,2,3,g2,CF.NAVY);ws.getCell(2,1).value='小组';ws.getCell(3,1).value='';
@@ -1660,9 +1869,9 @@ function sfbm0607(wb,D,dt,isUp){
 
 // ── FBM Sheet 08: 高ACOS预警 ─────────────────────────────────────────
 function sfbm08(wb,D,dt){
-  const ws=wb.addWorksheet('08_高ACOS预警');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=12;
+  const ws=wb.addWorksheet('08_高ACOS预警');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=15;
   ws.mergeCells(1,1,1,NC);const t=ws.getCell(1,1);t.value='高ACOS预警（W2广告花费>$10 且 ACOS>80%）';t.fill=ffl(CF.NAVY);t.font=ffn(1,'FFFFFF',13);t.alignment=al('left');t.border=FBD;ws.getRow(1).height=28;
-  ['ASIN','店铺','小组','W2订单数','W2销量','W2广告花费','W2广告销售额','W2 ACOS','W2 ACoAS','W2毛利润','风险等级','处理建议'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
+  ['ASIN','店铺','小组','一级分类','二级分类','三级分类','W2订单数','W2销量','W2广告花费','W2广告销售额','W2 ACOS','W2 ACoAS','W2毛利润','风险等级','处理建议'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
   const riskFn=(a)=>{if(a>2)return'🔴 极高风险';if(a>1.5)return'🟠 高风险';if(a>1)return'🟡 预警';return'🟡 预警';};
   const advFn=(a,p)=>{if(a>2)return'立即暂停广告';if(a>1.5)return'立即优化广告，降低出价50%';if(a>1)return`立即优化广告，降低出价30%${!na(p)&&p<0?'｜产品亏损':''}`;return`立即优化广告，降低出价30%${!na(p)&&p<0?'｜产品亏损':''}`;};
   const ha=D.asinMerged.filter(r=>r['广告花费_W2']>getThr('fbm','highAcos_spendMin')&&!na(r['ACOS_W2'])&&r['ACOS_W2']>getThr('fbm','highAcos_acosMin')/100).sort((a,b)=>Number(a['小组'])-Number(b['小组'])||b['ACOS_W2']-a['ACOS_W2']);
@@ -1670,57 +1879,57 @@ function sfbm08(wb,D,dt){
   for(const row of ha){
     const g=row['小组']||0;if(g!==pg){FSEP(ws,cur,NC,`▶ 小组${g}`,CF.BLUE);cur++;pg=g;}
     const bg=row['ACOS_W2']>1.5?CF.DOWN:CF.WARN;
-    [row['ASIN'],row['店铺'],`小组${g}`,fi(row['订单量_W2']||0),fi(row['销量_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fpr(row['订单毛利润_W2']),riskFn(row['ACOS_W2']),advFn(row['ACOS_W2'],row['订单毛利润_W2'])].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(i===6,i===6?C.RED_TXT:'000000',10);c.alignment=i<=1?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
+    [row['ASIN'],row['店铺'],`小组${g}`,row['一级分类']||'—',row['二级分类']||'—',row['三级分类']||'—',fi(row['订单量_W2']||0),fi(row['销量_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(row['ACOS_W2']),fp(row['ACoAS_W2']),fpr(row['订单毛利润_W2']),riskFn(row['ACOS_W2']),advFn(row['ACOS_W2'],row['订单毛利润_W2'])].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(i===6,i===6?C.RED_TXT:'000000',10);c.alignment=(i<=1||i>=3&&i<=5)?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
   }
-  [28,22,8,13,12,13,10,13,12,13,30].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  [28,22,8,13,14,14,13,12,13,10,13,12,13,30].forEach((w,i)=>ws.getColumn(i+1).width=w);
 }
 
 // ── FBM Sheet 09: 亏损产品 ───────────────────────────────────────────
 function sfbm09(wb,D,dt){
-  const ws=wb.addWorksheet('09_亏损产品');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=11;
+  const ws=wb.addWorksheet('09_亏损产品');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=14;
   ws.mergeCells(1,1,1,NC);const t=ws.getCell(1,1);t.value='亏损产品明细（W2订单毛利润 < -$10）';t.fill=ffl(CF.NAVY);t.font=ffn(1,'FFFFFF',13);t.alignment=al('left');t.border=FBD;ws.getRow(1).height=28;
-  ['ASIN','店铺','小组','W1毛利润','W2订单数','W2销量','W2净销售额','W2毛利润','W2毛利率','状态','运营建议'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
+  ['ASIN','店铺','小组','一级分类','二级分类','三级分类','W1毛利润','W2订单数','W2销量','W2净销售额','W2毛利润','W2毛利率','状态','运营建议'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
   const ld=D.asinMerged.filter(r=>r['订单毛利润_W2']<getThr('fbm','loss_profitMax')).sort((a,b)=>Number(a['小组'])-Number(b['小组'])||a['订单毛利润_W2']-b['订单毛利润_W2']);
   let cur=3,pg=null;
   for(const row of ld){
     const g=row['小组']||0;if(g!==pg){FSEP(ws,cur,NC,`▶ 小组${g}`,CF.BLUE);cur++;pg=g;}
     const st=!na(row['订单毛利润_W1'])&&row['订单毛利润_W1']>0?'由盈转亏⚠️':'持续亏损🔴';
     const adv=st.includes('盈转亏')?'优先排查：广告费变化/退款率/成本上升':'检查广告投入+成本结构，考虑调价或下架';
-    [row['ASIN'],row['店铺'],`小组${g}`,fpr(row['订单毛利润_W1']),fi(row['订单量_W2']||0),fi(row['销量_W2']),fu0(row['净销售额_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),st,adv].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(CF.DOWN);c.font=ffn(i===6||i===8,i===6?C.RED_TXT:(i===8&&st.includes('盈转亏')?C.PURPLE_TXT:'000000'),10);c.alignment=i<=1?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
+    [row['ASIN'],row['店铺'],`小组${g}`,row['一级分类']||'—',row['二级分类']||'—',row['三级分类']||'—',fpr(row['订单毛利润_W1']),fi(row['订单量_W2']||0),fi(row['销量_W2']),fu0(row['净销售额_W2']),fpr(row['订单毛利润_W2']),fp(row['订单毛利率_W2']),st,adv].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(CF.DOWN);c.font=ffn(i===9||i===11,i===9?C.RED_TXT:(i===11&&st.includes('盈转亏')?C.PURPLE_TXT:'000000'),10);c.alignment=i<=1?al('left'):(i>=3&&i<=5?al('left'):al('center'));c.border=FBD;});ws.getRow(cur).height=18;cur++;
   }
-  [28,22,8,12,8,12,13,10,16,30].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  [28,22,8,14,16,14,12,8,12,13,10,16,14,30].forEach((w,i)=>ws.getColumn(i+1).width=w);
 }
 
 // ── FBM Sheet 10: 高ACoAS预警 ────────────────────────────────────────
 function sfbm10(wb,D,dt){
-  const ws=wb.addWorksheet('10_高ACoAS预警');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=11;
+  const ws=wb.addWorksheet('10_高ACoAS预警');ws.views=[{state:'frozen',xSplit:2,ySplit:2,showGridLines:false}];const NC=14;
   ws.mergeCells(1,1,1,NC);const t=ws.getCell(1,1);t.value='高ACoAS预警（W2周销量>10 且 ACoAS>20%）';t.fill=ffl(CF.NAVY);t.font=ffn(1,'FFFFFF',13);t.alignment=al('left');t.border=FBD;ws.getRow(1).height=28;
-  ['ASIN','店铺','小组','W2订单数','W2销量','W2净销售额','W2广告花费','W2 ACoAS','W2毛利率','W2毛利润','异常标注'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
+  ['ASIN','店铺','小组','一级分类','二级分类','三级分类','W2订单数','W2销量','W2净销售额','W2广告花费','W2 ACoAS','W2毛利率','W2毛利润','异常标注'].forEach((v,i)=>{const c=ws.getCell(2,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(2).height=20;
   const annotFn=(a,p)=>{if(!na(a)&&a>0.5)return`⚠️ 广告占净销售额超50%，严重亏损风险`;if(!na(a)&&a>0.3)return`🟠 ACoAS偏高，毛利空间严重压缩`;if(!na(p)&&p<0)return`🟡 ACoAS超警戒线，需优化广告效率`;return`🟡 ACoAS超警戒线，需优化广告效率`;};
   const ha2=D.asinMerged.filter(r=>r['销量_W2']>getThr('fbm','highAcoas_salesMin')&&!na(r['ACoAS_W2'])&&r['ACoAS_W2']>getThr('fbm','highAcoas_acoasMin')/100).sort((a,b)=>Number(a['小组'])-Number(b['小组'])||b['ACoAS_W2']-a['ACoAS_W2']);
   let cur=3,pg=null;
   for(const row of ha2){
     const g=row['小组']||0;if(g!==pg){FSEP(ws,cur,NC,`▶ 小组${g}`,CF.BLUE);cur++;pg=g;}
     const a=row['ACoAS_W2'];const bg=!na(a)&&a>0.5?CF.DOWN:(!na(a)&&a>0.3?CF.WARN:CF.YLOW);
-    [row['ASIN'],row['店铺'],`小组${g}`,fi(row['订单量_W2']||0),fi(row['销量_W2']),fu0(row['净销售额_W2']),fpr(row['广告花费_W2']),fp(a),fp(row['订单毛利率_W2']),fpr(row['订单毛利润_W2']),annotFn(a,row['订单毛利润_W2'])].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(0,'000000',10);c.alignment=i<=1?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
+    [row['ASIN'],row['店铺'],`小组${g}`,row['一级分类']||'—',row['二级分类']||'—',row['三级分类']||'—',fi(row['订单量_W2']||0),fi(row['销量_W2']),fu0(row['净销售额_W2']),fpr(row['广告花费_W2']),fp(a),fp(row['订单毛利率_W2']),fpr(row['订单毛利润_W2']),annotFn(a,row['订单毛利润_W2'])].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(0,'000000',10);c.alignment=i<=1||(i>=3&&i<=5)?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
   }
-  [28,22,8,13,12,13,10,13,12,35].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  [28,22,8,12,14,14,13,12,13,10,13,12,35].forEach((w,i)=>ws.getColumn(i+1).width=w);
 }
 
 // ── FBM Sheet 11: 广告效率分析 ───────────────────────────────────────
 function sfbm11(wb,D,dt){
-  const ws=wb.addWorksheet('11_广告效率分析');ws.views=[{state:'frozen',ySplit:3,showGridLines:false}];const NC=13;
+  const ws=wb.addWorksheet('11_广告效率分析');ws.views=[{state:'frozen',ySplit:3,showGridLines:false}];const NC=15;
   ws.mergeCells(1,1,1,NC);const t=ws.getCell(1,1);t.value='广告效率分析 | 广告花费TOP30（按小组分组）（注：ACOS/CVR因数据限制不可用）';t.fill=ffl(CF.NAVY);t.font=ffn(1,'FFFFFF',13);t.alignment=al('left');t.border=FBD;ws.getRow(1).height=28;
   ws.mergeCells(2,1,2,NC);const s=ws.getCell(2,1);s.value='▌ ACOS区间分布汇总（仅含W2有广告花费的ASIN）';s.fill=ffl(CF.BLUE);s.font=ffn(1,'FFFFFF',12);s.alignment=al('left');s.border=FBD;ws.getRow(2).height=22;
-  ['ACOS区间','MSKU数','广告花费','广告销售额','综合ACOS','广告费占比','','','','','',''].forEach((v,i)=>{const c=ws.getCell(3,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(3).height=18;
+  ['ACOS区间','MSKU数','广告花费','广告销售额','综合ACOS','广告费占比','','','','','','','',''].forEach((v,i)=>{const c=ws.getCell(3,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(3).height=18;
   const adAll=D.asinMerged.filter(r=>r['广告花费_W2']>0);const totAd=D.asinMerged.reduce((a,r)=>a+r['广告花费_W2'],0);
   const zdefs=[['<20%',adAll.filter(r=>r['ACOS_W2']<0.2),CF.UP],['20-40%',adAll.filter(r=>r['ACOS_W2']>=0.2&&r['ACOS_W2']<0.4),CF.ALT1],['40-60%',adAll.filter(r=>r['ACOS_W2']>=0.4&&r['ACOS_W2']<0.6),CF.YLOW],['60-80%',adAll.filter(r=>r['ACOS_W2']>=0.6&&r['ACOS_W2']<0.8),CF.WARN],['>80%',adAll.filter(r=>r['ACOS_W2']>=0.8),CF.DOWN]];
   zdefs.forEach(([lbl,zd,zbg],i)=>{
     const sp=zd.reduce((a,x)=>a+x['广告花费_W2'],0),ar=zd.reduce((a,x)=>a+x['广告销售额_W2'],0);
-    [lbl,zd.length,fpr(sp),fpr(ar),fp(sdiv(sp,ar)),fp(sdiv(sp,totAd)),'','','','','',''].forEach((v,j)=>{const c=ws.getCell(4+i,j+1);c.value=v;c.fill=ffl(zbg);c.font=ffn(0,'000000',10);c.alignment=al('center');c.border=FBD;});ws.getRow(4+i).height=18;
+    [lbl,zd.length,fpr(sp),fpr(ar),fp(sdiv(sp,ar)),fp(sdiv(sp,totAd)),'','','','','','','',''].forEach((v,j)=>{const c=ws.getCell(4+i,j+1);c.value=v;c.fill=ffl(zbg);c.font=ffn(0,'000000',10);c.alignment=al('center');c.border=FBD;});ws.getRow(4+i).height=18;
   });
   ws.mergeCells(9,1,9,NC);const s2=ws.getCell(9,1);s2.value='▌ 广告花费TOP30产品明细（W2，按小组分组）';s2.fill=ffl(CF.BLUE);s2.font=ffn(1,'FFFFFF',12);s2.alignment=al('left');s2.border=FBD;ws.getRow(9).height=22;
-  ['排名','ASIN','店铺','小组','一级分类','W2订单数','W2销量','W2广告费','W2广告销售额','ACOS','ACoAS','广告策略建议',''].forEach((v,i)=>{const c=ws.getCell(10,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(10).height=18;
+  ['排名','ASIN','店铺','小组','一级分类','二级分类','三级分类','W2订单数','W2销量','W2广告费','W2广告销售额','ACOS','ACoAS','广告策略建议',''].forEach((v,i)=>{const c=ws.getCell(10,i+1);c.value=v;c.fill=ffl(CF.NAVY);c.font=ffn(1,'FFFFFF',10);c.alignment=al('center');c.border=FBD;});ws.getRow(10).height=18;
   const t30=adAll.sort((a,b)=>b['广告花费_W2']-a['广告花费_W2']).slice(0,30);t30.forEach((r,i)=>r._rank30=i+1);
   t30.sort((a,b)=>Number(a['小组'])-Number(b['小组'])||b['广告花费_W2']-a['广告花费_W2']);
   // ★FIX: no extra blank row - write directly after TOP30 header
@@ -1729,7 +1938,7 @@ function sfbm11(wb,D,dt){
     const g=row['小组']||0;if(g!==pg){FSEP(ws,cur,NC,`▶ 小组${g}`,CF.BLUE);cur++;pg=g;}
     const a=row['ACOS_W2'];const bg=!na(a)&&a>0.8?CF.DOWN:(!na(a)&&a>0.4?CF.WARN:CF.UP);
     const adv=!na(a)&&a>0.8?'立即降低出价30-50%':(!na(a)&&a>0.4?'优化关键词，适当降价':'效率良好，可适度提升预算');
-    [row._rank30,row['ASIN'],row['店铺'],`小组${g}`,row['一级分类']||'',fi(row['订单量_W2']||0),fi(row['销量_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(a),fp(row['ACoAS_W2']),adv,''].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(i===8,i===8&&!na(a)&&a>0.8?C.RED_TXT:'000000',10);c.alignment=i===1||i===2?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
+    [row._rank30,row['ASIN'],row['店铺'],`小组${g}`,row['一级分类']||'',row['二级分类']||'',row['三级分类']||'',fi(row['订单量_W2']||0),fi(row['销量_W2']),fpr(row['广告花费_W2']),fpr(row['广告销售额_W2']),fp(a),fp(row['ACoAS_W2']),adv,''].forEach((v,i)=>{const c=ws.getCell(cur,i+1);c.value=v;c.fill=ffl(bg);c.font=ffn(i===11,i===11&&!na(a)&&a>0.8?C.RED_TXT:'000000',10);c.alignment=i===1||i===2||(i>=4&&i<=6)?al('left'):al('center');c.border=FBD;});ws.getRow(cur).height=18;cur++;
   }
   const totAd2=adAll.reduce((a,r)=>a+r['广告花费_W2'],0);const hiA=adAll.filter(r=>r['ACOS_W2']>=0.8);
   ws.mergeCells(cur,1,cur,NC);const s3=ws.getCell(cur,1);s3.value='▌ 【广告效率分析与运营建议】';s3.fill=ffl(CF.BLUE);s3.font=ffn(1,'FFFFFF',12);s3.alignment=al('left');s3.border=FBD;ws.getRow(cur).height=22;cur++;
@@ -1737,7 +1946,7 @@ function sfbm11(wb,D,dt){
   adNotes.forEach(([txt,bg])=>{
     ws.mergeCells(cur,1,cur,NC);const c=ws.getCell(cur,1);c.value=txt;c.fill=ffl(bg);c.font=ffn(0,'000000',10);c.alignment={horizontal:'left',vertical:'middle',wrapText:true};c.border=FBD;ws.getRow(cur).height=52;cur++;
   });
-  [16,20,14,10,13,13,12,13,10,13,30,13].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  [16,20,14,10,13,14,14,13,12,13,10,13,30,13].forEach((w,i)=>ws.getColumn(i+1).width=w);
 }
 
 // ── FBM Sheet 12: 行动计划 ───────────────────────────────────────────
@@ -2357,7 +2566,7 @@ const DEFAULT_SCHEMAS = {
     '09_亏损产品':[
       {key:'MSKU',header:'MSKU',fmt:'text',w:22},{key:'所属店铺',header:'所属店铺',fmt:'text',w:22},
       {key:'grp_label',header:'小组',fmt:'text',w:7},{key:'一级分类',header:'一级分类',fmt:'text',w:10},
-      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
+      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'三级分类',header:'三级分类',fmt:'text',w:14},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
       {key:'销售额_W2',header:'W2销售额',fmt:'usd0',w:12},{key:'销售均价_W2',header:'W2均价',fmt:'price',w:9},
       {key:'订单毛利润_W2',header:'W2毛利润',fmt:'usd2',w:12},{key:'订单毛利率_W2',header:'W2毛利率',fmt:'pct',w:10},
       {key:'广告花费_W2',header:'W2广告费',fmt:'usd2',w:10},{key:'ACOS_W2',header:'W2 ACOS',fmt:'pct',w:10},
@@ -2366,7 +2575,7 @@ const DEFAULT_SCHEMAS = {
     '10_低利润预警':[
       {key:'MSKU',header:'MSKU',fmt:'text',w:18},{key:'所属店铺',header:'所属店铺',fmt:'text',w:22},
       {key:'grp_label',header:'小组',fmt:'text',w:7},{key:'一级分类',header:'一级分类',fmt:'text',w:10},
-      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
+      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'三级分类',header:'三级分类',fmt:'text',w:14},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
       {key:'销售额_W2',header:'W2销售额',fmt:'usd0',w:12},{key:'销售均价_W2',header:'W2均价',fmt:'price',w:9},
       {key:'订单毛利润_W2',header:'W2毛利润',fmt:'usd2',w:12},{key:'订单毛利率_W2',header:'W2毛利率',fmt:'pct',w:10},
       {key:'广告花费_W2',header:'W2广告费',fmt:'usd2',w:10},{key:'ACOS_W2',header:'W2 ACOS',fmt:'pct',w:10},
@@ -2375,7 +2584,7 @@ const DEFAULT_SCHEMAS = {
     '11_低库存预警':[
       {key:'MSKU',header:'MSKU',fmt:'text',w:18},{key:'所属店铺',header:'所属店铺',fmt:'text',w:22},
       {key:'grp_label',header:'小组',fmt:'text',w:7},{key:'一级分类',header:'一级分类',fmt:'text',w:10},
-      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
+      {key:'二级分类',header:'二级分类',fmt:'text',w:12},{key:'三级分类',header:'三级分类',fmt:'text',w:14},{key:'销量_W2',header:'W2销量',fmt:'int',w:8},
       {key:'日均销量',header:'日均销量',fmt:'daily',w:8},{key:'可用库存_W2',header:'可用库存',fmt:'int',w:10},
       {key:'可售天数_W2',header:'可售天数',fmt:'days',w:10},{key:'销售额_W2',header:'W2销售额',fmt:'usd0',w:12},
       {key:'订单毛利润_W2',header:'W2毛利润',fmt:'usd2',w:12},{key:'订单毛利率_W2',header:'W2毛利率',fmt:'pct',w:10},
@@ -2871,7 +3080,10 @@ async function generate(){
     const perFBA_W2=aggBy(rows2.filter(r=>r['执行人_raw']),['执行人_raw','小组']);
     const perFBA=mergeAgg(perFBA_W1,perFBA_W2,['执行人_raw','小组']);
     perFBA.forEach(r=>{r['执行人']=r['执行人_raw'];r['ACoAS_W1']=sdiv(r['广告花费_W1'],r['销售额_W1']);r['ACoAS_W2']=sdiv(r['广告花费_W2'],r['销售额_W2']);});
-    const D={merged,grpM,storeM,cat1M,cat2M,cat2sM,cat3M,cat3sM,msku1,msku2,stats,tagsMap,rawCnt12_fba_W1,rawCnt12_fba_W2,rawCntCat2_fba_W2,perFBA};
+    // ★ 按(MSKU+店铺)聚合，保留站点维度，用于s13按站点拆分潜力/风险产品
+    const storeRows1=aggMskuStore(rows1),storeRows2=aggMskuStore(rows2);
+    const storeMerged=mergeStoreW(storeRows1,storeRows2);
+    const D={merged,grpM,storeM,cat1M,cat2M,cat2sM,cat3M,cat3sM,msku1,msku2,stats,tagsMap,rawCnt12_fba_W1,rawCnt12_fba_W2,rawCntCat2_fba_W2,perFBA,storeMerged};
     const dt=getDt();S.D=D;S.isFBM=false;S.dt=dt;
     lg('生成工作簿...',1);const wbx=new ExcelJS.Workbook();wbx.creator='AmazonReportTool_v2';
     lg('写入 00_总体概览...');s00(wbx,D,dt);sp(50);
