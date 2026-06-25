@@ -267,6 +267,20 @@ ul.clean li::before{content:'';position:absolute;left:4px;top:8px;width:5px;heig
 .heat3 td.rh{text-align:left;font-weight:500;color:#333;background:var(--subtle);border-right:1.5px solid var(--border)}
 .heat3 td.na{color:#ccc}
 
+/* 整体起量轨迹卡片 */
+.traj-cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:10px 0 4px}
+.traj-card{flex:1;min-width:128px;border:1.5px solid var(--border);border-radius:11px;padding:10px 11px;background:var(--surface);position:relative}
+.traj-card.peak{border-color:var(--purple);background:var(--purple-l)}
+.traj-card .tc-date{font-size:10.5px;color:var(--coral-d);font-weight:600;margin-bottom:2px}
+.traj-card.peak .tc-date{color:var(--purple-d)}
+.traj-card .tc-wk{font-size:11px;color:var(--muted);margin-bottom:6px}
+.traj-card .tc-peak{font-size:9.5px;background:var(--purple);color:#fff;padding:1px 6px;border-radius:7px;margin-left:3px}
+.traj-card .tc-main{font-size:22px;font-weight:700;line-height:1.05}
+.traj-card .tc-lbl{font-size:10px;color:var(--muted);margin-top:1px}
+.traj-card .tc-sku{font-size:10.5px;color:#888;margin:5px 0 4px}
+.traj-card .tc-row{font-size:10.5px;color:#555;display:flex;justify-content:space-between;padding:1px 0}
+.traj-card .tc-row b{font-weight:600}
+
 </style>
 </head>
 <body>
@@ -322,9 +336,17 @@ ul.clean li::before{content:'';position:absolute;left:4px;top:8px;width:5px;heig
               <option value="fbm">FBM</option>
             </select>
           </div>
-          <div class="cfg-item">
-            <label title="开售时长 = 下载日期 − 开售时间，按此切分周维度">下载日期(截止日)</label>
-            <input type="date" class="sel" id="cutoffInput" style="padding:5px 8px">
+        </div>
+
+        <div id="cutoffBox" style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-radius:11px;background:#EBF3FF;border:1.5px solid rgba(37,99,235,.28);margin-top:12px">
+          <div style="font-size:19px;flex-shrink:0">📅</div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:600;color:#1e40af;margin-bottom:5px">下载时间（截止日）—— 开售时长与周划分都以此为基准</div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <input type="date" class="sel" id="cutoffInput" style="padding:6px 10px;border-color:var(--blue);background:#fff;font-weight:600;color:#1e40af">
+              <span id="cutoffStatus" style="font-size:11.5px"></span>
+            </div>
+            <div style="font-size:11.5px;color:#1e40af;line-height:1.6;margin-top:6px">开售时长 = <b>下载时间 − 开售时间</b>，再按每 7 天一周切分。日期会优先从<b>文件名或工作表名</b>里的 YYYYMMDD 自动识别；<b>识别不到时必须手动填写</b>实际导出那天的日期——不会默认成今天，因为那通常是错的。修改后会自动重新分析。</div>
           </div>
         </div>
 
@@ -548,26 +570,43 @@ function cleanCountry(v){
 
 /* ---------- 文件读取 ---------- */
 function readFile(file){
-  // 从文件名解析下载日期：Listing20260623... → 2026-06-23
-  var dlDate=null;
-  var mfn=String(file.name).match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})/);
-  if(mfn){ var dt=new Date(+mfn[1],+mfn[2]-1,+mfn[3]); if(!isNaN(dt.getTime())) dlDate=dt; }
-  STATE.downloadDate=dlDate;
   var reader=new FileReader();
   reader.onload=function(e){
     try{
       var data=new Uint8Array(e.target.result);
       var wb=XLSX.read(data,{type:'array',cellDates:true});
       STATE.wb=wb; STATE.sheetNames=wb.SheetNames;
-      // 填充截止日输入框（默认=文件名下载日期，否则今天）
-      var ci=document.getElementById('cutoffInput');
-      if(ci){ ci.value=(dlDate||new Date()).toISOString().slice(0,10); ci.onchange=function(){ if(STATE.data&&STATE.data.length) runAnalysis(); }; }
+      // 识别下载日期：先文件名，再工作表名（很多导出把日期放在表名里，如 Listing20260623）
+      var found=findDownloadDate([file.name]) , dlFrom='文件名';
+      if(!found){ found=findDownloadDate(wb.SheetNames); dlFrom='工作表名'; }
+      STATE.downloadDate= found? found.date : null;
+      var ci=document.getElementById('cutoffInput'), cs=document.getElementById('cutoffStatus');
+      if(ci){
+        ci.value= found? found.date.toISOString().slice(0,10) : '';   // 识别不到则留空，绝不默认今天
+        ci.onchange=function(){
+          if(cs){ cs.innerHTML= ci.value? '<span style="color:var(--blue);background:#EBF3FF;padding:2px 8px;border-radius:8px">✎ 已手动设为 '+ci.value+'</span>' : '<span style="color:var(--coral-d);background:var(--coral-l);padding:2px 8px;border-radius:8px">⚠ 请填写下载日期后才能分析</span>'; }
+          updateHint();
+          if(ci.value && STATE.data && STATE.data.length) runAnalysis();
+        };
+      }
+      if(cs){
+        if(found) cs.innerHTML='<span style="color:var(--teal-d);background:var(--teal-l);padding:2px 8px;border-radius:8px">✓ 已从'+dlFrom+'「'+esc(found.src)+'」自动识别</span>';
+        else cs.innerHTML='<span style="color:var(--coral-d);background:var(--coral-l);padding:2px 8px;border-radius:8px">⚠ 文件名和工作表名都没有日期，<b>请手动填写实际下载日期</b>（不能用今天，否则开售时长/周划分会算错）</span>';
+      }
       setupSheets();
       document.getElementById('setupArea').classList.remove('hidden');
       setStatus('已加载：'+file.name,false);
     }catch(err){ alert('文件解析失败：'+err.message); console.error(err); }
   };
   reader.readAsArrayBuffer(file);
+}
+/* 从一组字符串（文件名/工作表名）里识别 YYYYMMDD 形式的下载日期 */
+function findDownloadDate(strs){
+  for(var i=0;i<strs.length;i++){
+    var m=String(strs[i]==null?'':strs[i]).match(/(20\d{2})[-_]?(\d{2})[-_]?(\d{2})/);
+    if(m){ var dt=new Date(+m[1],+m[2]-1,+m[3]); if(!isNaN(dt.getTime())&&+m[2]>=1&&+m[2]<=12&&+m[3]>=1&&+m[3]<=31) return {date:dt, src:m[0]}; }
+  }
+  return null;
 }
 
 function sheetToRows(name){
@@ -720,8 +759,11 @@ function updateHint(){
   var missing=FIELDS.filter(function(f){return f.req&&STATE.mapping[f.key]==null;});
   var hint=document.getElementById('setupHint');
   var btn=document.getElementById('analyzeBtn');
+  var ci=document.getElementById('cutoffInput');
+  var noCutoff= !ci || !ci.value;
   if(missing.length){ hint.textContent='⚠ 还需映射必填列：'+missing.map(function(f){return f.label;}).join('、'); hint.style.color='var(--coral)'; btn.style.opacity='.5'; btn.style.pointerEvents='none'; }
-  else{ hint.textContent='✓ 必填列已就绪，可开始分析'; hint.style.color='var(--teal)'; btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
+  else if(noCutoff){ hint.textContent='⚠ 请先填写「下载时间」——文件名/工作表名都没识别到日期，必须手动填，否则开售时长会算错'; hint.style.color='var(--coral)'; btn.style.opacity='.5'; btn.style.pointerEvents='none'; }
+  else{ hint.textContent='✓ 必填列与下载时间已就绪，可开始分析'; hint.style.color='var(--teal)'; btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
 }
 
 function renderPreview(){
@@ -787,7 +829,9 @@ function buildData(){
     var sales30=parseNum(get(r,'sales30'));
     var openDays= t.ld? daysBetween(t.ld,cutoff) : null;
     if(openDays!=null&&openDays>maxODactual) maxODactual=openDays;
-    var daily= (sales30!=null&&openDays&&openDays>0)? sales30/openDays : (sales30!=null?sales30/30:null);
+    // 日均销量 = 30日销量 ÷ min(开售时长,30)。因"30日销量"最多只覆盖30天，
+    // 开售超30天的产品若除以开售时长会系统性低估，故除数封顶30天（与原表"30日均销量"口径一致）
+    var daily= (sales30!=null&&openDays&&openDays>0)? sales30/Math.min(openDays,30) : (sales30!=null?sales30/30:null);
     // 分类：若一级分类列为合并格式（BYJ\ZZWO\文案 或 BYJ/ZZWO/文案）且未单独映射二级，则拆分
     var rawC1=get(r,'cat1'), c1,c2,c3;
     if(rawC1!=null && /[\\\/]/.test(String(rawC1)) && m.cat2==null){
@@ -884,7 +928,7 @@ function renderOverview(){
   var ca=d.filter(function(x){return x.country==='加拿大';});
   var mode=STATE.detectedMode.toUpperCase();
   var html='';
-  html+='<div class="card"><h2>📊 全站核心 KPI <span class="bdg bdg-p">'+mode+' 模式</span> <span class="bdg bdg-gray">截止 '+STATE.cutoffDate.toISOString().slice(0,10)+'</span></h2>';
+  html+='<div class="card"><h2>📊 全站核心 KPI <span class="bdg bdg-p">'+mode+' 模式</span> <span class="bdg bdg-gray">下载时间 '+STATE.cutoffDate.toISOString().slice(0,10)+'</span></h2>';
   html+='<div class="krow k6">';
   html+=kpi('SKU 总数',A.n,'出单 '+A.orderCount+' 个',A.orderRate<30?'red':'');
   html+=kpi('出单率',fmtPct(A.orderRate),A.zeroCount+' 个零销量',A.orderRate<30?'red':(A.orderRate>=70?'green':'amber'));
@@ -1206,6 +1250,108 @@ function weekHeat(cats, catKey, metric, title, data){
   return html;
 }
 /* ============================================================
+   渲染：整体起量轨迹（全局 6 周段关键数值总括 + 日期）
+   目的：一屏看清全站新品随开售周段推进的起量节奏与拐点
+   ============================================================ */
+function trajTrend(vals, kind){
+  // vals: 各周段数值数组（可含null）；kind: 'up'越大越好 / 'down'越小越好
+  var arr=vals.filter(function(v){return v!=null;});
+  if(arr.length<2) return {a:'~',t:'数据不足',c:'#888'};
+  var first=arr[0], last=arr[arr.length-1], max=Math.max.apply(null,arr), min=Math.min.apply(null,arr);
+  if(kind==='up'){
+    // 出单率/日均：看是否上升并趋稳
+    var peakIdx=-1; for(var i=0;i<vals.length;i++){ if(vals[i]!=null&&vals[i]>=90){ peakIdx=i; break; } }
+    if(last>=first*1.15){
+      if(peakIdx>=0) return {a:'↑',t:WEEK_ORDER[peakIdx]+'起稳定',c:'var(--teal-d)'};
+      return {a:'↑',t:'整体上升',c:'var(--teal-d)'};
+    }
+    if(last<first*0.85) return {a:'↓',t:'走弱',c:'var(--coral-d)'};
+    // 趋稳：前低后平
+    if(arr[0]<arr[1]&&Math.abs(last-arr[1])<arr[1]*0.3) return {a:'↑',t:'前段后趋稳',c:'var(--teal-d)'};
+    return {a:'~',t:'波动',c:'var(--amber-d)'};
+  } else {
+    if(last<=first*0.7) return {a:'↓',t:'持续收敛',c:'var(--teal-d)'};
+    if(last<first) return {a:'↓',t:'整体下降',c:'var(--teal-d)'};
+    if(last>first*1.2) return {a:'↑',t:'走高需警惕',c:'var(--coral-d)'};
+    return {a:'~',t:'波动',c:'var(--amber-d)'};
+  }
+}
+function median(arr){ var a=arr.filter(function(x){return x!=null;}).sort(function(x,y){return x-y;}); if(!a.length)return null; var m=Math.floor(a.length/2); return a.length%2? a[m] : (a[m-1]+a[m])/2; }
+
+function renderTrajectory(){
+  var d=STATE.data.filter(function(x){return x.week&&WEEK_ORDER.indexOf(x.week)>=0;});
+  if(!d.length) return '';
+  var hasAcos=STATE.data.some(function(x){return x.acos7!=null;});
+  var hasS7=STATE.data.some(function(x){return x.sales7!=null;});
+  // 逐周聚合
+  var W=WEEK_ORDER.map(function(w){
+    var items=d.filter(function(x){return x.week===w;});
+    var a=aggregate(items);
+    var s7avg= hasS7? (function(){ var s=items.map(function(x){return x.sales7;}).filter(function(x){return x!=null;}); return s.length? s.reduce(function(p,c){return p+c;},0)/s.length/7 : null; })() : null;
+    return { w:w, n:items.length, orderRate:items.length?a.orderRate:null,
+      acos7:a.acoas7Weighted, acos30:a.acoasWeighted,
+      dailyMean:a.avgDaily, dailyMed:median(items.map(function(x){return x.dailySales;})), s7avg:s7avg };
+  });
+  // 拐点：出单率首次≥90%的周
+  var peakW=null; for(var i=0;i<W.length;i++){ if(W[i].n>0&&W[i].orderRate!=null&&W[i].orderRate>=90){ peakW=W[i].w; break; } }
+
+  var html='<div class="card"><h2>📈 整体起量轨迹 <span class="sub" style="font-size:11.5px;color:var(--muted);font-weight:400">全站 '+d.length+' 个 SKU 按开售周段的关键数值变化</span></h2>';
+  html+='<p class="note">以开售时长把所有 SKU 划成 W1–W'+WMAX+' 周段（每 7 天一周，截止日=下载时间），逐段统计出单率 / ACoAS / 日均销量。'+(peakW?'<b>'+peakW+'</b> 是全局拐点（出单率首次站上 90%）。':'')+'</p>';
+
+  // 横向卡片
+  html+='<div class="traj-cards">';
+  W.forEach(function(x){
+    var isPeak=(x.w===peakW);
+    html+='<div class="traj-card'+(isPeak?' peak':'')+'">';
+    html+='<div class="tc-date">'+(wkDateRange(x.w)||'')+'</div>';
+    html+='<div class="tc-wk">'+x.w+' '+WEEK_DESC[x.w].replace('⚡','')+(isPeak?'<span class="tc-peak">⚡拐点</span>':'')+'</div>';
+    html+='<div class="tc-main">'+(x.orderRate!=null?fmtPct(x.orderRate):'—')+'</div><div class="tc-lbl">出单率</div>';
+    html+='<div class="tc-sku">'+x.n+' SKU</div>';
+    if(hasAcos) html+='<div class="tc-row"><span>7日ACoAS</span><b>'+(x.acos7!=null?fmtPct(x.acos7):'—')+'</b></div>';
+    html+='<div class="tc-row"><span>日均销量</span><b>'+(x.dailyMean!=null?fmtNum(x.dailyMean):'—')+'</b></div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // 指标 × 周段 总括表（带变化趋势）
+  html+='<div class="tw" style="margin-top:12px"><table class="tbl"><thead><tr><th>指标</th>'+
+    W.map(function(x){return '<th class="r">'+x.w+'<br><span style="font-size:9px;color:#aaa;font-weight:400">'+WEEK_DESC[x.w].replace('⚡','')+'</span></th>';}).join('')+
+    '<th>变化趋势</th></tr></thead><tbody>';
+  // 行：SKU数
+  html+='<tr><td><b>SKU数</b></td>'+W.map(function(x){return '<td class="r">'+x.n+'</td>';}).join('')+'<td style="color:#bbb">—</td></tr>';
+  // 出单率
+  html+=trajRow('出单率 %', W.map(function(x){return x.orderRate;}), 'orderRate', trajTrend(W.map(function(x){return x.orderRate;}),'up'));
+  // 7日ACoAS
+  if(hasAcos) html+=trajRow('7日 ACoAS %', W.map(function(x){return x.acos7;}), 'acos', trajTrend(W.map(function(x){return x.acos7;}),'down'));
+  // 30日ACoAS
+  if(STATE.data.some(function(x){return x.acos30!=null;})) html+=trajRow('30日 ACoAS %', W.map(function(x){return x.acos30;}), 'acos', trajTrend(W.map(function(x){return x.acos30;}),'down'));
+  // 日均销量均值
+  html+=trajRow('日均销量(均值)', W.map(function(x){return x.dailyMean;}), 'daily', trajTrend(W.map(function(x){return x.dailyMean;}),'up'));
+  // 日均销量中位
+  html+=trajRow('日均销量(中位)', W.map(function(x){return x.dailyMed;}), 'daily', trajTrend(W.map(function(x){return x.dailyMed;}),'up'));
+  // 7日均销量
+  if(hasS7) html+=trajRow('7日均销量', W.map(function(x){return x.s7avg;}), 'daily', trajTrend(W.map(function(x){return x.s7avg;}),'up'));
+  html+='</tbody></table></div>';
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">日期为各周段对应的开售时间区间（下载时间往前推）。颜色：出单率/日均越深绿越好，ACoAS 越深红越差。</div>';
+  html+='</div>';
+  return html;
+}
+function trajRow(label, vals, kind, trend){
+  var html='<tr><td><b>'+esc(label)+'</b></td>';
+  vals.forEach(function(v){
+    if(v==null){ html+='<td class="r" style="color:#ccc">—</td>'; return; }
+    var cls='';
+    if(kind==='orderRate') cls= v>=90?'h5':v>=70?'h4':v>=50?'h3c':v>=30?'h2c':'h1c';
+    else if(kind==='acos') cls= v<20?'h5':v<35?'h4':v<50?'h3c':v<80?'h2c':'h1c';
+    else if(kind==='daily') cls= v>=1?'h5':v>=0.6?'h4':v>=0.4?'h3c':v>=0.2?'h2c':'h1c';
+    var disp= kind==='daily'? fmtNum(v) : fmtPct(v);
+    html+='<td class="r '+cls+'">'+disp+'</td>';
+  });
+  html+='<td style="color:'+trend.c+';font-weight:600;white-space:nowrap">'+trend.a+' '+esc(trend.t)+'</td></tr>';
+  return html;
+}
+
+/* ============================================================
    渲染：品类热力页（L1/L2 × 周段热力图 + 判断标准表）
    目的：用热力图快速读出每个品类的"起量轨迹"，并对照健康基准
    ============================================================ */
@@ -1216,6 +1362,9 @@ function renderHeat(){
   var l1Rows=Object.keys(byL1).map(function(k){return {k:k,a:aggregate(byL1[k])};}).filter(function(x){return x.a.n>=3;}).sort(function(a,b){return (b.a.avgDaily||0)-(a.a.avgDaily||0);});
   var l1Top=l1Rows.slice(0,8).map(function(r){return r.k;});
   var html='';
+
+  // ① 整体起量轨迹（全局总括）
+  html+=renderTrajectory();
 
   // ① L1 × 周段 三热力图
   html+='<div class="card"><h2>🌡️ 一级品类 × 周段热力图</h2>';
@@ -1565,8 +1714,8 @@ function renderDocs(){
   // 日均销量
   html+='<div class="doc-sec" id="d-daily"><h3>二、日均销量（核心指标）</h3>'+
     '<p>出单率只能区分"有没有出单"，无法区分"出 1 单"和"出 10 单"。日均销量能真正衡量起量强度，区分"有气无力"与"真起量"。</p>'+
-    '<div class="formula">日均销量 = 30日销量 ÷ 开售时长（天）<br>开售时长 = 截止日 − 开售时间<br>截止日 = <code>数据下载日期</code>（从文件名 Listing<b>YYYYMMDD</b> 自动识别，可在上传页手动调整）</div>'+
-    '<p style="font-size:12px;color:var(--muted)">本工具自动取数据中最晚的开售时间 + 6 天作为统一截止日，确保所有 SKU 在同一基准下可比。</p></div>';
+    '<div class="formula">日均销量 = 30日销量 ÷ <b>min(开售时长, 30)</b><br>开售时长 = 截止日 − 开售时间，截止日 = <code>数据下载日期</code>（从文件名 Listing<b>YYYYMMDD</b> 自动识别，可在上传页调整）<br><span style="color:#888;font-size:11.5px">说明：30日销量最多只覆盖最近30天，故开售超30天的产品除数封顶30天，避免日均被低估（与原始表"30日均销量"口径一致）；开售不足30天的新品仍按实际开售时长计算。</span></div>'+
+    '<p style="font-size:12px;color:var(--muted)">截止日统一取<b>数据下载时间</b>（上传时自动从文件名识别，或手动填写），确保所有 SKU 在同一基准下可比，且同一份数据在任何时候上传都得到相同结果。</p></div>';
 
   // 周维度
   html+='<div class="doc-sec" id="d-week"><h3>三、周维度切分（开售时长，每 7 天一周）</h3>'+
@@ -1635,6 +1784,8 @@ function step(n,c){ return '<div class="step"><div class="step-n">'+n+'</div><di
    主流程
    ============================================================ */
 function runAnalysis(){
+  var ci=document.getElementById('cutoffInput');
+  if(!ci||!ci.value){ alert('请先填写「下载时间」——文件名和工作表名都没识别到日期，需手动填写实际数据导出那天，否则开售时长与周划分会算错。'); var cs=document.getElementById('cutoffStatus'); if(cs)cs.scrollIntoView&&cs.scrollIntoView({behavior:'smooth',block:'center'}); return; }
   var data=buildData();
   if(!data.length){ alert('未解析到有效数据，请检查列映射（尤其 ASIN 与 30日销量）。'); return; }
   renderOverview(); renderWeek(); renderHeat(); renderCross(); renderTeam(); renderDiag();
